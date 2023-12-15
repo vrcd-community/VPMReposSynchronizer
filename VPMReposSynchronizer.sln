@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VPMReposSynchronizer.Entry", "VPMReposSynchronizer.Entry\VPMReposSynchronizer.Entry.csproj", "{70AA2692-8EE6-479C-B863-16C5D7AA955A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VPMReposSynchronizer.Core", "VPMReposSynchronizer.Core\VPMReposSynchronizer.Core.csproj", "{9F7F17A6-4309-40FF-85A8-8A05FEC1CB39}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{70AA2692-8EE6-479C-B863-16C5D7AA955A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70AA2692-8EE6-479C-B863-16C5D7AA955A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70AA2692-8EE6-479C-B863-16C5D7AA955A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70AA2692-8EE6-479C-B863-16C5D7AA955A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F7F17A6-4309-40FF-85A8-8A05FEC1CB39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F7F17A6-4309-40FF-85A8-8A05FEC1CB39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F7F17A6-4309-40FF-85A8-8A05FEC1CB39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F7F17A6-4309-40FF-85A8-8A05FEC1CB39}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
