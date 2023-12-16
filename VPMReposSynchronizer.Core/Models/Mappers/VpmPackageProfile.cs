@@ -30,12 +30,20 @@ public class VpmPackageProfile : Profile
                 opt => opt.MapFrom(src => ConvertStringToDictionary(src.Headers ?? "{}")))
             // Author
             .ForMember(dest => dest.Author,
-                opt => opt.MapFrom(src => new VpmPackageAuthor
-                {
-                    Name = src.AuthorName,
-                    Url = src.AuthorUrl,
-                    Email = src.AuthorEmail
-                }));
+                opt => opt.MapFrom(src => src.AuthorName == null
+                    ? null
+                    : new VpmPackageAuthor
+                    {
+                        Name = src.AuthorName,
+                        Url = src.AuthorUrl,
+                        Email = src.AuthorEmail
+                    }))
+            // Keywords
+            .ForMember(dest => dest.Keywords,
+                opt => opt.MapFrom(src => ConvertStringToArray(src.Keywords ?? "[]")))
+            // Samples
+            .ForMember(dest => dest.Samples,
+                opt => opt.MapFrom(src => ConvertFromJson<PackageSample[]>(src.Smaples ?? "[]")));
 
         CreateMap<VpmPackage, VpmPackageEntity>()
             .ForMember(dest => dest.VpmId, opt => opt.MapFrom(src => src.Id))
@@ -51,18 +59,24 @@ public class VpmPackageProfile : Profile
                 opt => opt.MapFrom(src => ConvertArrayToString(src.LegacyPackages ?? Array.Empty<string>())))
             // Dependencies
             .ForMember(dest => dest.Dependencies,
-                opt => opt.MapFrom(src => ConvertDictionaryToString(src.Dependencies)))
+                opt => opt.MapFrom(src => ConvertDictionaryToString(src.Dependencies ?? new Dictionary<string, string>())))
             .ForMember(dest => dest.VpmDependencies,
-                opt => opt.MapFrom(src => ConvertDictionaryToString(src.VpmDependencies)))
+                opt => opt.MapFrom(src => ConvertDictionaryToString(src.VpmDependencies ?? new Dictionary<string, string>())))
             .ForMember(dest => dest.GitDependencies,
-                opt => opt.MapFrom(src => ConvertDictionaryToString(src.GitDependencies)))
+                opt => opt.MapFrom(src => ConvertDictionaryToString(src.GitDependencies ?? new Dictionary<string, string>())))
             // Headers
             .ForMember(dest => dest.Headers,
                 opt => opt.MapFrom(src => ConvertDictionaryToString(src.Headers ?? new Dictionary<string, string>())))
             // Author
-            .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author.Name))
-            .ForMember(dest => dest.AuthorEmail, opt => opt.MapFrom(src => src.Author.Email))
-            .ForMember(dest => dest.AuthorUrl, opt => opt.MapFrom(src => src.Author.Url));
+            .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author == null ? null : src.Author.Name))
+            .ForMember(dest => dest.AuthorEmail, opt => opt.MapFrom(src => src.Author == null ? null : src.Author.Email))
+            .ForMember(dest => dest.AuthorUrl, opt => opt.MapFrom(src => src.Author == null ? null : src.Author.Url))
+            // Keywords
+            .ForMember(dest => dest.Keywords,
+                opt => opt.MapFrom(src => ConvertArrayToString(src.Keywords ?? Array.Empty<string>())))
+            // Samples
+            .ForMember(dest => dest.Smaples,
+                opt => opt.MapFrom(src => ConvertToJson(src.Samples)));
     }
 
     private static Dictionary<string, string> ConvertStringToDictionary(string input)
@@ -83,5 +97,15 @@ public class VpmPackageProfile : Profile
     private static string ConvertArrayToString(string[] input)
     {
         return JsonSerializer.Serialize(input);
+    }
+
+    private static string ConvertToJson<T>(T input)
+    {
+        return JsonSerializer.Serialize(input);
+    }
+
+    private static T? ConvertFromJson<T>(string input)
+    {
+        return JsonSerializer.Deserialize<T>(input);
     }
 }

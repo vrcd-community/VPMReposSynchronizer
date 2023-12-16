@@ -7,16 +7,17 @@ namespace VPMReposSynchronizer.Core.Models.Types;
 public class VpmPackage
 {
     public string Name { get; set; }
-    public string DisplayName { get; set; }
+    public string? DisplayName { get; set; }
     public string Version { get; set; }
 
     [JsonPropertyName("unity")] public string? UnityVersion { get; set; }
+    [JsonPropertyName("unityRelease")] public string? UnityRelease { get; set; }
 
-    public string Description { get; set; }
+    public string? Description { get; set; }
     public string Url { get; set; }
     public string? LocalPath { get; set; }
 
-    public VpmPackageAuthor Author { get; set; }
+    public VpmPackageAuthor? Author { get; set; }
 
     [JsonPropertyName("zipSHA256")] public string? ZipSha256 { get; set; }
 
@@ -26,10 +27,15 @@ public class VpmPackage
 
     [JsonPropertyName("changelogUrl")] public string? ChangeLogUrl { get; set; }
 
-    public Dictionary<string, string> Dependencies { get; set; }
-    public Dictionary<string, string> GitDependencies { get; set; }
+    public Dictionary<string, string>? Dependencies { get; set; }
+    public Dictionary<string, string>? GitDependencies { get; set; }
+    [JsonPropertyName("vpmDependencies")] public Dictionary<string, string>? VpmDependencies { get; set; }
 
-    [JsonPropertyName("vpmDependencies")] public Dictionary<string, string> VpmDependencies { get; set; }
+    public bool? HideInEditor { get; set; }
+    public string[]? Keywords { get; set; }
+    public string? License { get; set; }
+
+    public PackageSample[]? Samples { get; set; }
 
     // From VPM-Core-Lib, I don't know what dose these property mean.
     public Dictionary<string, string>? Headers { get; set; }

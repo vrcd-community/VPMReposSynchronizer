@@ -1,10 +1,12 @@
-﻿using System.Net.Http.Headers;
-using System.Text.Json;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.Extensions.Options;
 using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types;
+using VPMReposSynchronizer.Core.Options;
 using VPMReposSynchronizer.Core.Services;
 using VPMReposSynchronizer.Core.Services.FileHost;
 
@@ -12,10 +14,12 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 
 [ApiController]
 [Route("vpm")]
+[Produces("application/json")]
 public class VpmRepoController(
     RepoMetaDataService repoMetaDataService,
     RepoSynchronizerService repoSynchronizerService,
     IFileHostService fileHostService,
+    IOptions<MirrorRepoMetaDataOptions> options,
     IMapper mapper) : ControllerBase
 {
     [HttpGet]
@@ -34,7 +38,7 @@ public class VpmRepoController(
 
     [HttpGet]
     [OutputCache(PolicyName = "vpm")]
-    public async Task<VpmRepo> Index()
+    public async Task<JsonResult> Index()
     {
         var vpmPackageEntities = await repoMetaDataService.GetVpmPackages();
 
@@ -50,10 +54,14 @@ public class VpmRepoController(
                     new VpmRepoPackageVersions(packageVersions)))
                 .ToDictionary();
 
-        var repo = new VpmRepo("Official Mirror", "VRChat", "https://example.com", "com.vrchat.repos.official.mirror",
+        var repo = new VpmRepo(options.Value.RepoName, options.Value.RepoAuthor, options.Value.RepoUrl, options.Value.RepoId,
             packages);
 
-        return repo;
+        return new JsonResult(repo, new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
     }
 
     private async Task<VpmPackage> GetPackageWithUrl(VpmPackageEntity package)

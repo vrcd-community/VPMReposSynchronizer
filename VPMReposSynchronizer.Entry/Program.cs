@@ -1,19 +1,23 @@
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Templates;
 using Serilog.Templates.Themes;
 using VPMReposSynchronizer.Core.DbContexts;
 using VPMReposSynchronizer.Core.Models.Mappers;
+using VPMReposSynchronizer.Core.Options;
 using VPMReposSynchronizer.Core.Services;
 using VPMReposSynchronizer.Core.Services.FileHost;
 
+var builder = WebApplication.CreateBuilder(args);
+
+#region Logger
 const string logTemplate =
     "[{@t:yyyy-MM-dd HH:mm:ss} {@l:u3}] [{Substring(SourceContext, LastIndexOf(SourceContext, '.') + 1)}] {@m}\n{@x}";
-
-var builder = WebApplication.CreateBuilder(args);
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
@@ -23,11 +27,58 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
+#endregion
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+#region API Doc
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Version = "v1",
+        Title = "VPM Repos Synchronizer API",
+        Description = "API for VPM Repos Synchronizer",
+        Contact = new OpenApiContact
+        {
+            Name = "VRCD-Community",
+            Url = new Uri("https://github.com/vrcd-community")
+        },
+        License = new OpenApiLicense
+        {
+            Name = "GPL3.0",
+            Url = new Uri("https://github.com/vrcd-community/VPMReposSynchronizer/blob/main/LICENSE")
+        },
+    });
+
+    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+});
+#endregion
+
+#region Configuration
+builder.Services.Configure<SynchronizerOptions>(builder.Configuration.GetSection("Synchronizer"));
+builder.Services.Configure<MirrorRepoMetaDataOptions>(builder.Configuration.GetSection("MirrorRepoMetaData"));
+builder.Services.Configure<LocalFileHostOptions>(builder.Configuration.GetSection("LocalFileHost"));
+#endregion
+
+#region DataBase & Mapper
+builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+builder.Services.AddDbContext<PackageDbContext>(options =>
+{
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+
+builder.Services.AddAutoMapper(typeof(VpmPackageProfile));
+#endregion
+
+#region App Services
+builder.Services.AddTransient<IFileHostService, LocalFileHostService>();
+
+builder.Services.AddTransient<RepoMetaDataService>();
+builder.Services.AddTransient<RepoSynchronizerService>();
+builder.Services.AddHostedService<RepoSynchronizerHostService>();
+#endregion
+
 builder.Services.AddControllers();
 
 builder.Services.AddOutputCache(options =>
@@ -36,25 +87,11 @@ builder.Services.AddOutputCache(options =>
 });
 builder.Services.AddDirectoryBrowser();
 
-builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-builder.Services.AddDbContext<PackageDbContext>(options =>
-{
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
-});
-
-builder.Services.AddAutoMapper(typeof(VpmPackageProfile));
-
 builder.Services.AddHttpClient("default", client =>
 {
     client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("VPMReposSynchronizer",
         Assembly.GetExecutingAssembly().GetName().Version?.ToString()));
 });
-
-builder.Services.AddTransient<IFileHostService, LocalFileHostService>();
-
-builder.Services.AddTransient<RepoMetaDataService>();
-builder.Services.AddTransient<RepoSynchronizerService>();
-builder.Services.AddHostedService<RepoSynchronizerHostService>();
 
 var app = builder.Build();
 
@@ -73,7 +110,6 @@ using (var scope = app.Services.CreateScope())
 
     var context = services.GetRequiredService<PackageDbContext>();
     context.Database.EnsureCreated();
-    // DbInitializer.Initialize(context);
 }
 
 app.UseOutputCache();
