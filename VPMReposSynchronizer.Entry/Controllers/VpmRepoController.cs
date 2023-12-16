@@ -17,25 +17,10 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [Produces("application/json")]
 public class VpmRepoController(
     RepoMetaDataService repoMetaDataService,
-    RepoSynchronizerService repoSynchronizerService,
     IFileHostService fileHostService,
     IOptions<MirrorRepoMetaDataOptions> options,
     IMapper mapper) : ControllerBase
 {
-    [HttpGet]
-    [Route("test")]
-    public async Task<VpmPackageEntity[]> Test()
-    {
-        return await repoMetaDataService.GetVpmPackages();
-    }
-
-    [HttpPost]
-    [Route("sync")]
-    public async Task Sync()
-    {
-        await repoSynchronizerService.StartSync("https://packages.vrchat.com/official");
-    }
-
     [HttpGet]
     [OutputCache(PolicyName = "vpm")]
     public async Task<JsonResult> Index()
