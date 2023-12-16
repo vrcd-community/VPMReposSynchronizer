@@ -7,7 +7,7 @@ namespace VPMReposSynchronizer.Core.Services.FileHost;
 
 public class LocalFileHostService(IOptions<LocalFileHostOptions> options) : IFileHostService
 {
-    private const string FilePath = "files";
+    private readonly string _filePath = options.Value.FilesPath;
 
     public async Task<string> UploadFileAsync(string path)
     {
@@ -19,11 +19,11 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options) : IFil
         await using var fileStream = File.OpenRead(path);
 
         var fileName = await FileUtils.HashStream(fileStream);
-        var filePath = Path.Combine(FilePath, fileName);
+        var filePath = Path.Combine(_filePath, fileName);
 
-        if (!Directory.Exists(FilePath))
+        if (!Directory.Exists(_filePath))
         {
-            Directory.CreateDirectory(FilePath);
+            Directory.CreateDirectory(_filePath);
         }
 
         File.Copy(path, filePath);
@@ -32,7 +32,7 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options) : IFil
 
     public Task<string> GetFileUriAsync(string fileId)
     {
-        var filePath = Path.Combine(FilePath, fileId).Replace('\\', '/');
+        var filePath = Path.Combine(_filePath, fileId).Replace('\\', '/');
         if (!File.Exists(filePath))
         {
             throw new InvalidOperationException("File Id (File Path) Not found",
@@ -44,7 +44,7 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options) : IFil
 
     public async Task<string?> LookupFileByHashAsync(string hash)
     {
-        var filePath = Path.Combine(FilePath, hash);
+        var filePath = Path.Combine(_filePath, hash);
 
         return File.Exists(filePath) ? hash : null;
     }

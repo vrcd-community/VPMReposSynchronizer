@@ -58,6 +58,8 @@ builder.Services.AddSwaggerGen(options =>
 #region Configuration
 builder.Services.Configure<SynchronizerOptions>(builder.Configuration.GetSection("Synchronizer"));
 builder.Services.Configure<MirrorRepoMetaDataOptions>(builder.Configuration.GetSection("MirrorRepoMetaData"));
+
+builder.Services.Configure<FileHostServiceOptions>(builder.Configuration.GetSection("FileHost"));
 builder.Services.Configure<LocalFileHostOptions>(builder.Configuration.GetSection("LocalFileHost"));
 #endregion
 
@@ -71,9 +73,35 @@ builder.Services.AddDbContext<PackageDbContext>(options =>
 builder.Services.AddAutoMapper(typeof(VpmPackageProfile));
 #endregion
 
-#region App Services
-builder.Services.AddTransient<IFileHostService, LocalFileHostService>();
+#region FileHostService
 
+if (!Enum.TryParse(builder.Configuration.GetSection("FileHost")["FileHostServiceType"],
+        out FileHostServiceType fileHostServiceType))
+{
+    fileHostServiceType = FileHostServiceType.LocalFileHost;
+}
+
+switch (fileHostServiceType)
+{
+    case FileHostServiceType.LocalFileHost:
+        var filesPath = builder.Configuration.GetSection("LocalFileHost")["FilesPath"] ?? new LocalFileHostOptions().FilesPath;
+        builder.Services.AddTransient<LocalFileHostService>();
+        builder.Services.AddDirectoryBrowser();
+
+        if (!Directory.Exists(filesPath))
+        {
+            Directory.CreateDirectory(filesPath);
+        }
+        break;
+    case FileHostServiceType.S3FileHost:
+        break;
+    default:
+        throw new Exception("FileHostServiceType is not supported or invalid");
+}
+builder.Services.AddTransient<IFileHostService, LocalFileHostService>();
+#endregion
+
+#region App Services
 builder.Services.AddTransient<RepoMetaDataService>();
 builder.Services.AddTransient<RepoSynchronizerService>();
 builder.Services.AddHostedService<RepoSynchronizerHostService>();
@@ -85,7 +113,6 @@ builder.Services.AddOutputCache(options =>
 {
     options.AddPolicy("vpm", policyBuilder => policyBuilder.Expire(TimeSpan.FromSeconds(30)));
 });
-builder.Services.AddDirectoryBrowser();
 
 builder.Services.AddHttpClient("default", client =>
 {
@@ -114,16 +141,19 @@ using (var scope = app.Services.CreateScope())
 
 app.UseOutputCache();
 
-app.UseFileServer(new FileServerOptions
+if (fileHostServiceType == FileHostServiceType.LocalFileHost)
 {
-    FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "files")),
-    RequestPath = "/files",
-    EnableDirectoryBrowsing = true,
-    StaticFileOptions =
+    app.UseFileServer(new FileServerOptions
     {
-        ServeUnknownFileTypes = true,
-    }
-});
+        FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "files")),
+        RequestPath = "/files",
+        EnableDirectoryBrowsing = true,
+        StaticFileOptions =
+        {
+            ServeUnknownFileTypes = true,
+        }
+    });
+}
 
 app.UseHttpsRedirection();
 
