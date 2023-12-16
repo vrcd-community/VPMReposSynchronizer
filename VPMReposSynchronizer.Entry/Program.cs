@@ -56,6 +56,8 @@ builder.Services.AddSwaggerGen(options =>
 #endregion
 
 #region Configuration
+builder.Configuration.AddEnvironmentVariables();
+
 builder.Services.Configure<SynchronizerOptions>(builder.Configuration.GetSection("Synchronizer"));
 builder.Services.Configure<MirrorRepoMetaDataOptions>(builder.Configuration.GetSection("MirrorRepoMetaData"));
 
