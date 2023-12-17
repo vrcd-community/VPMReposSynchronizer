@@ -4,6 +4,8 @@
 
 用于同步 VPM 仓库的同步器。
 
+前端：[vpm-repos-syncronizer-web](https://github.com/vrcd-community/vpm-repos-syncronizer-web)
+
 ## 使用方法
 
 ### Dotnet

@@ -4,6 +4,8 @@
 
 A Synchronizer to sync VPM Repos.
 
+Frontend: [vpm-repos-syncronizer-web](https://github.com/vrcd-community/vpm-repos-syncronizer-web)
+
 ## Usage
 
 ### Dotnet
