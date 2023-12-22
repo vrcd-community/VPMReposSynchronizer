@@ -5,6 +5,8 @@ riderModule.iml
 /_ReSharper.Caches/
 .idea
 
+/VPMReposSynchronizer.Entry/appsettings.Development.json
+
 packages.db
 /VPMReposSynchronizer.Entry/files/
 logs/
