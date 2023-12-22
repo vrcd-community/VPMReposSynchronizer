@@ -87,7 +87,7 @@ switch (fileHostServiceType)
 {
     case FileHostServiceType.LocalFileHost:
         var filesPath = builder.Configuration.GetSection("LocalFileHost")["FilesPath"] ?? new LocalFileHostOptions().FilesPath;
-        builder.Services.AddTransient<LocalFileHostService>();
+        builder.Services.AddTransient<IFileHostService, LocalFileHostService>();
         builder.Services.AddDirectoryBrowser();
 
         if (!Directory.Exists(filesPath))
@@ -98,9 +98,8 @@ switch (fileHostServiceType)
     case FileHostServiceType.S3FileHost:
         break;
     default:
-        throw new Exception("FileHostServiceType is not supported or invalid");
+        throw new ArgumentException("FileHostServiceType is not supported or invalid");
 }
-builder.Services.AddTransient<IFileHostService, LocalFileHostService>();
 #endregion
 
 #region App Services
@@ -145,9 +144,18 @@ app.UseOutputCache();
 
 if (fileHostServiceType == FileHostServiceType.LocalFileHost)
 {
+    var filesPath = builder.Configuration.GetSection("LocalFileHost")["FilesPath"] ?? new LocalFileHostOptions().FilesPath;
+    builder.Services.AddTransient<LocalFileHostService>();
+    builder.Services.AddDirectoryBrowser();
+
+    if (!Directory.Exists(filesPath))
+    {
+        Directory.CreateDirectory(filesPath);
+    }
+
     app.UseFileServer(new FileServerOptions
     {
-        FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "files")),
+        FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, filesPath)),
         RequestPath = "/files",
         EnableDirectoryBrowsing = true,
         StaticFileOptions =

@@ -39,7 +39,7 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options) : IFil
                 new FileNotFoundException("File not found", filePath));
         }
 
-        return Task.FromResult(options.Value.BaseUrl + filePath);
+        return Task.FromResult(new Uri(options.Value.BaseUrl, filePath).ToString());
     }
 
     public async Task<string?> LookupFileByHashAsync(string hash)
