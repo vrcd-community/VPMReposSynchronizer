@@ -63,6 +63,7 @@ builder.Services.Configure<MirrorRepoMetaDataOptions>(builder.Configuration.GetS
 
 builder.Services.Configure<FileHostServiceOptions>(builder.Configuration.GetSection("FileHost"));
 builder.Services.Configure<LocalFileHostOptions>(builder.Configuration.GetSection("LocalFileHost"));
+builder.Services.Configure<S3FileHostServiceOptions>(builder.Configuration.GetSection("S3FileHost"));
 #endregion
 
 #region DataBase & Mapper
@@ -96,6 +97,7 @@ switch (fileHostServiceType)
         }
         break;
     case FileHostServiceType.S3FileHost:
+        builder.Services.AddTransient<IFileHostService, S3FileHostService>();
         break;
     default:
         throw new ArgumentException("FileHostServiceType is not supported or invalid");
@@ -145,7 +147,6 @@ app.UseOutputCache();
 if (fileHostServiceType == FileHostServiceType.LocalFileHost)
 {
     var filesPath = builder.Configuration.GetSection("LocalFileHost")["FilesPath"] ?? new LocalFileHostOptions().FilesPath;
-    builder.Services.AddTransient<LocalFileHostService>();
     builder.Services.AddDirectoryBrowser();
 
     if (!Directory.Exists(filesPath))
