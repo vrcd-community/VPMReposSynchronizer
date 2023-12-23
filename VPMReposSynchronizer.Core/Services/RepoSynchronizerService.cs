@@ -35,15 +35,12 @@ public class RepoSynchronizerService(
                      package => package.Value.Versions.Select(version => version.Value)))
         {
             var fileId = "";
-            if (package.ZipSha256 is { } sha256)
+            if (package.ZipSha256 is { } sha256 && await fileHostService.LookupFileByHashAsync(sha256) is { } tempFileId)
             {
-                if (await fileHostService.LookupFileByHashAsync(sha256) is { } tempFileId)
-                {
-                    logger.LogInformation("File is already Downloaded & Uploaded, Skip Download {PackageName}@{PackageVersion}",
-                        package.Name,
-                        package.Version);
-                    fileId = tempFileId;
-                }
+                logger.LogInformation("File is already Downloaded & Uploaded, Skip Download {PackageName}@{PackageVersion}",
+                    package.Name,
+                    package.Version);
+                fileId = tempFileId;
             }
 
             if (fileId == "")
