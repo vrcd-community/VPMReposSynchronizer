@@ -82,7 +82,7 @@ builder.Services.Configure<S3FileHostServiceOptions>(builder.Configuration.GetSe
 #region DataBase & Mapper
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-builder.Services.AddDbContext<PackageDbContext>(options =>
+builder.Services.AddDbContext<DefaultDbContext>(options =>
 {
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
@@ -133,6 +133,7 @@ builder.Services.AddSingleton<RepoSynchronizerStatusService>();
 
 builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics => metrics
+        .ConfigureResource(resource => resource.AddService(nameof(RepoSynchronizerService)))
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddProcessInstrumentation()
@@ -173,8 +174,9 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
 
-    var context = services.GetRequiredService<PackageDbContext>();
-    context.Database.EnsureCreated();
+    var dbContext = services.GetRequiredService<DefaultDbContext>();
+
+    dbContext.Database.EnsureCreated();
 }
 
 app.UseOutputCache();

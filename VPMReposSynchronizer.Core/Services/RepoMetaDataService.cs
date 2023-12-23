@@ -6,12 +6,12 @@ using VPMReposSynchronizer.Core.Models.Types;
 
 namespace VPMReposSynchronizer.Core.Services;
 
-public class RepoMetaDataService(PackageDbContext packageDbContext, IMapper mapper)
+public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapper)
 {
     public async Task AddVpmPackageAsync(VpmPackageEntity vpmPackageEntity)
     {
-        packageDbContext.Packages.Add(vpmPackageEntity);
-        await packageDbContext.SaveChangesAsync();
+        defaultDbContext.Packages.Add(vpmPackageEntity);
+        await defaultDbContext.SaveChangesAsync();
     }
 
     public async Task AddVpmPackageAsync(VpmPackage vpmPackage, string fileId)
@@ -24,16 +24,16 @@ public class RepoMetaDataService(PackageDbContext packageDbContext, IMapper mapp
 
     public async Task AddOrUpdateVpmPackageAsync(VpmPackageEntity vpmPackageEntity)
     {
-        if (await packageDbContext.Packages.AnyAsync(package => package.PackageId == vpmPackageEntity.PackageId))
+        if (await defaultDbContext.Packages.AnyAsync(package => package.PackageId == vpmPackageEntity.PackageId))
         {
-            packageDbContext.Packages.Update(vpmPackageEntity);
+            defaultDbContext.Packages.Update(vpmPackageEntity);
         }
         else
         {
-            packageDbContext.Packages.Add(vpmPackageEntity);
+            defaultDbContext.Packages.Add(vpmPackageEntity);
         }
 
-        await packageDbContext.SaveChangesAsync();
+        await defaultDbContext.SaveChangesAsync();
     }
 
     public async Task AddOrUpdateVpmPackageAsync(VpmPackage vpmPackage, string fileId)
@@ -46,6 +46,6 @@ public class RepoMetaDataService(PackageDbContext packageDbContext, IMapper mapp
 
     public async Task<VpmPackageEntity[]> GetVpmPackages()
     {
-        return await packageDbContext.Packages.ToArrayAsync();
+        return await defaultDbContext.Packages.ToArrayAsync();
     }
 }
