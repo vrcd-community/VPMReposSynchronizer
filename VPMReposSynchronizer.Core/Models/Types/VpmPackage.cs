@@ -6,15 +6,15 @@ namespace VPMReposSynchronizer.Core.Models.Types;
 
 public class VpmPackage
 {
-    public string Name { get; set; }
+    public required string Name { get; set; }
     public string? DisplayName { get; set; }
-    public string Version { get; set; }
+    public required string Version { get; set; }
 
     [JsonPropertyName("unity")] public string? UnityVersion { get; set; }
     [JsonPropertyName("unityRelease")] public string? UnityRelease { get; set; }
 
     public string? Description { get; set; }
-    public string Url { get; set; }
+    public required string Url { get; set; }
     public string? LocalPath { get; set; }
 
     public VpmPackageAuthor? Author { get; set; }

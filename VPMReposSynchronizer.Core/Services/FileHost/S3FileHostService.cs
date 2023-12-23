@@ -99,7 +99,7 @@ public class S3FileHostService : IFileHostService
         {
             BucketName = _options.Value.BucketName,
             Key = key,
-            Expires = DateTime.UtcNow.AddSeconds(_options.Value.PreSignedURLExpires)
+            Expires = DateTime.UtcNow.AddSeconds(_options.Value.PreSignedUrlExpires)
         });
     }
 
@@ -130,7 +130,7 @@ public class S3FileHostService : IFileHostService
 
             await _dbContext.SaveChangesAsync();
         }
-        catch (AmazonS3Exception e)
+        catch (AmazonS3Exception)
         {
             return null;
         }

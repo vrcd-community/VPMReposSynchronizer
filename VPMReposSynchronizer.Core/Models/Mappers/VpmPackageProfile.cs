@@ -43,7 +43,7 @@ public class VpmPackageProfile : Profile
                 opt => opt.MapFrom(src => ConvertStringToArray(src.Keywords ?? "[]")))
             // Samples
             .ForMember(dest => dest.Samples,
-                opt => opt.MapFrom(src => ConvertFromJson<PackageSample[]>(src.Smaples ?? "[]")));
+                opt => opt.MapFrom(src => ConvertFromJson<PackageSample[]>(src.Samples ?? "[]")));
 
         CreateMap<VpmPackage, VpmPackageEntity>()
             .ForMember(dest => dest.VpmId, opt => opt.MapFrom(src => src.Id))
@@ -75,7 +75,7 @@ public class VpmPackageProfile : Profile
             .ForMember(dest => dest.Keywords,
                 opt => opt.MapFrom(src => ConvertArrayToString(src.Keywords ?? Array.Empty<string>())))
             // Samples
-            .ForMember(dest => dest.Smaples,
+            .ForMember(dest => dest.Samples,
                 opt => opt.MapFrom(src => ConvertToJson(src.Samples)));
     }
 
