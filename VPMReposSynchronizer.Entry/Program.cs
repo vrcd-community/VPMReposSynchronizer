@@ -1,9 +1,10 @@
 using System.Net.Http.Headers;
 using System.Reflection;
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using Serilog;
 using Serilog.Templates;
 using Serilog.Templates.Themes;
@@ -16,6 +17,7 @@ using VPMReposSynchronizer.Core.Services.FileHost;
 var builder = WebApplication.CreateBuilder(args);
 
 #region Logger
+
 const string logTemplate =
     "[{@t:yyyy-MM-dd HH:mm:ss} {@l:u3}] [{Substring(SourceContext, LastIndexOf(SourceContext, '.') + 1)}] {@m}\n{@x}";
 
@@ -27,9 +29,17 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
+
+builder.Logging.AddOpenTelemetry(options =>
+{
+    options
+        .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("meter"));
+});
+
 #endregion
 
 #region API Doc
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -53,9 +63,11 @@ builder.Services.AddSwaggerGen(options =>
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
+
 #endregion
 
 #region Configuration
+
 builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.Configure<SynchronizerOptions>(builder.Configuration.GetSection("Synchronizer"));
@@ -64,9 +76,11 @@ builder.Services.Configure<MirrorRepoMetaDataOptions>(builder.Configuration.GetS
 builder.Services.Configure<FileHostServiceOptions>(builder.Configuration.GetSection("FileHost"));
 builder.Services.Configure<LocalFileHostOptions>(builder.Configuration.GetSection("LocalFileHost"));
 builder.Services.Configure<S3FileHostServiceOptions>(builder.Configuration.GetSection("S3FileHost"));
+
 #endregion
 
 #region DataBase & Mapper
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddDbContext<PackageDbContext>(options =>
 {
@@ -74,6 +88,7 @@ builder.Services.AddDbContext<PackageDbContext>(options =>
 });
 
 builder.Services.AddAutoMapper(typeof(VpmPackageProfile));
+
 #endregion
 
 #region FileHostService
@@ -87,7 +102,8 @@ if (!Enum.TryParse(builder.Configuration.GetSection("FileHost")["FileHostService
 switch (fileHostServiceType)
 {
     case FileHostServiceType.LocalFileHost:
-        var filesPath = builder.Configuration.GetSection("LocalFileHost")["FilesPath"] ?? new LocalFileHostOptions().FilesPath;
+        var filesPath = builder.Configuration.GetSection("LocalFileHost")["FilesPath"] ??
+                        new LocalFileHostOptions().FilesPath;
         builder.Services.AddTransient<IFileHostService, LocalFileHostService>();
         builder.Services.AddDirectoryBrowser();
 
@@ -95,6 +111,7 @@ switch (fileHostServiceType)
         {
             Directory.CreateDirectory(filesPath);
         }
+
         break;
     case FileHostServiceType.S3FileHost:
         builder.Services.AddTransient<IFileHostService, S3FileHostService>();
@@ -102,13 +119,25 @@ switch (fileHostServiceType)
     default:
         throw new ArgumentException("FileHostServiceType is not supported or invalid");
 }
+
 #endregion
 
 #region App Services
+
 builder.Services.AddTransient<RepoMetaDataService>();
 builder.Services.AddTransient<RepoSynchronizerService>();
 builder.Services.AddHostedService<RepoSynchronizerHostService>();
+builder.Services.AddSingleton<RepoSynchronizerStatusService>();
+
 #endregion
+
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddProcessInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddPrometheusExporter());
 
 builder.Services.AddControllers();
 
@@ -121,6 +150,12 @@ builder.Services.AddHttpClient("default", client =>
 {
     client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("VPMReposSynchronizer",
         Assembly.GetExecutingAssembly().GetName().Version?.ToString()));
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin());
 });
 
 var app = builder.Build();
@@ -146,7 +181,8 @@ app.UseOutputCache();
 
 if (fileHostServiceType == FileHostServiceType.LocalFileHost)
 {
-    var filesPath = builder.Configuration.GetSection("LocalFileHost")["FilesPath"] ?? new LocalFileHostOptions().FilesPath;
+    var filesPath = builder.Configuration.GetSection("LocalFileHost")["FilesPath"] ??
+                    new LocalFileHostOptions().FilesPath;
     builder.Services.AddDirectoryBrowser();
 
     if (!Directory.Exists(filesPath))
@@ -166,8 +202,12 @@ if (fileHostServiceType == FileHostServiceType.LocalFileHost)
     });
 }
 
+app.UseOpenTelemetryPrometheusScrapingEndpoint();
+
 app.UseHttpsRedirection();
 
 app.MapControllers();
+
+app.UseCors();
 
 app.Run();
