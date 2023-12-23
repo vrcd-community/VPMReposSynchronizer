@@ -51,7 +51,7 @@ public class RepoSynchronizerService(
                 logger.LogInformation("Start Downloading {PackageName}@{PackageVersion}: {PackageUrl}", package.Name,
                     package.Version, package.Url);
 
-                var tempFileName = Path.GetTempFileName();
+                var tempFileName = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
                 await using var stream = await httpClient.GetStreamAsync(package.Url);
                 await using var tempFileStream = File.Create(tempFileName);
                 await stream.CopyToAsync(tempFileStream);
