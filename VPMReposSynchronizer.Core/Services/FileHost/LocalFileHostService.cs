@@ -9,7 +9,7 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options, ILogge
 {
     private readonly string _filePath = options.Value.FilesPath;
 
-    public async Task<string> UploadFileAsync(string path)
+    public async Task<string> UploadFileAsync(string path, string name)
     {
         if (!File.Exists(path))
         {
@@ -21,10 +21,11 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options, ILogge
 
         await using var fileStream = File.OpenRead(path);
 
-        var fileName = await FileUtils.HashStream(fileStream);
-        var filePath = Path.Combine(_filePath, fileName);
+        var fileHash = await FileUtils.HashStream(fileStream);
+        var filePath = Path.Combine(_filePath, fileHash, name);
+        var fileHashPath = Path.Combine(_filePath, fileHash);
 
-        logger.LogInformation("File {Path} hash is {FileHash}", path, fileName);
+        logger.LogInformation("File {Path} hash is {FileHash}", path, fileHash);
 
         if (!Directory.Exists(_filePath))
         {
@@ -32,17 +33,22 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options, ILogge
             Directory.CreateDirectory(_filePath);
         }
 
-        File.Copy(path, filePath);
-        logger.LogInformation("File {FileHash} ({Path}) copied to {FilePath}", fileName, path, filePath);
+        if (!Directory.Exists(fileHashPath))
+        {
+            Directory.CreateDirectory(fileHashPath);
+        }
 
-        return fileName;
+        File.Copy(path, filePath);
+        logger.LogInformation("File {FileHash} ({Path}) copied to {FilePath}", fileHash, path, filePath);
+
+        return fileHash;
     }
 
     public Task<string> GetFileUriAsync(string fileId)
     {
-        var filePath = Path.Combine(_filePath, fileId).Replace('\\', '/');
+        var filePath = GetFilePath(fileId);
 
-        if (File.Exists(filePath))
+        if (filePath is not null && File.Exists(filePath))
             return Task.FromResult(new Uri(options.Value.BaseUrl, filePath).ToString());
 
         var exception = new InvalidOperationException("File Id (File Path) Not found",
@@ -55,8 +61,20 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options, ILogge
 
     public Task<string?> LookupFileByHashAsync(string hash)
     {
-        var filePath = Path.Combine(_filePath, hash);
+        var filePath = GetFilePath(hash);
 
-        return Task.FromResult(File.Exists(filePath) ? hash : null);
+        return Task.FromResult(filePath is null ? null : File.Exists(filePath) ? hash : null);
+    }
+
+    private string? GetFilePath(string hash)
+    {
+        var hashPath = Path.Combine(_filePath, hash);
+        if (!Directory.Exists(Path.Combine(_filePath, hash))) return null;
+
+        var files = Directory.GetFiles(hashPath);
+        if (files.Length != 0)
+            return files[0];
+
+        return null;
     }
 }

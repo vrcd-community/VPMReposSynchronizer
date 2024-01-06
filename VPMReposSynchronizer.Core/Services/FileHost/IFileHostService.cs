@@ -2,7 +2,7 @@
 
 public interface IFileHostService
 {
-    public Task<string> UploadFileAsync(string path);
+    public Task<string> UploadFileAsync(string path, string name);
     public Task<string> GetFileUriAsync(string fileId);
     public Task<string?> LookupFileByHashAsync(string hash);
 }

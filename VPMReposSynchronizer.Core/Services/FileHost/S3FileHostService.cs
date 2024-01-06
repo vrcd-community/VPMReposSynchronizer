@@ -1,5 +1,6 @@
 ﻿using Amazon.S3;
 using Amazon.S3.Model;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VPMReposSynchronizer.Core.DbContexts;
@@ -30,7 +31,7 @@ public class S3FileHostService : IFileHostService
     }
 
 
-    public async Task<string> UploadFileAsync(string path)
+    public async Task<string> UploadFileAsync(string path, string name)
     {
         if (!File.Exists(path))
         {
@@ -42,7 +43,7 @@ public class S3FileHostService : IFileHostService
 
         await using var fileStream = File.OpenRead(path);
         var fileHash = await FileUtils.HashStream(fileStream);
-        var key = GetFileKey(fileHash);
+        var key = GetFileKey(fileHash, name);
 
         _logger.LogInformation("File {Path} hash is {FileHash}, Checking File Record...", path, fileHash);
 
@@ -50,17 +51,10 @@ public class S3FileHostService : IFileHostService
         if (fileRecord is not null)
         {
             _logger.LogWarning(
-                "File {FileKey} ({FilePath}) already exists in S3 File Records Database, Checking is file exists in S3...",
+                "File {FileKey} ({FilePath}) already exists in S3 File Records Database",
                 key, path);
 
-            if (await LookupFileByHashAsync(key) is not null)
-            {
-                _logger.LogWarning("File {FileKey} ({FilePath}) already exists in S3, Skip Upload", key, path);
-                return key;
-            }
-
-            _logger.LogWarning("File{FileKey} ({FilePath}) already exists in S3 File Records Database, but not in S3, Upload will continue",
-                key, path);
+            return key;
         }
 
         _logger.LogInformation("Uploading File {Path} to S3", path);
@@ -104,41 +98,12 @@ public class S3FileHostService : IFileHostService
 
     public async Task<string?> LookupFileByHashAsync(string hash)
     {
-        var key = GetFileKey(hash);
-
-        var fileRecord = await _dbContext.S3FileRecords.FindAsync(key);
-        if (fileRecord is not null)
-            return key;
-
-        _logger.LogWarning("File Not Found in Database, Checking S3 for File {FileHash}", key);
-
-        try
-        {
-            await _client.GetObjectMetadataAsync(new GetObjectMetadataRequest
-            {
-                BucketName = _options.Value.BucketName,
-                Key = key
-            });
-
-            _logger.LogInformation("File Found in S3, Adding to Database {FileHash}", key);
-            _dbContext.S3FileRecords.Add(new S3FileRecordEntity
-            {
-                FileKey = key,
-                FileHash = hash
-            });
-
-            await _dbContext.SaveChangesAsync();
-        }
-        catch (AmazonS3Exception)
-        {
-            return null;
-        }
-
-        return hash;
+        var fileRecord = await _dbContext.S3FileRecords.FirstOrDefaultAsync(record => record.FileHash == hash);
+        return fileRecord?.FileKey;
     }
 
-    private string GetFileKey(string inputKey)
+    private string GetFileKey(string fileHash, string fileName)
     {
-        return _options.Value.FileKeyPrefix + inputKey + _options.Value.FileKeySuffix;
+        return _options.Value.FileKeyPrefix + fileHash + "/" + fileName + _options.Value.FileKeySuffix;
     }
 }

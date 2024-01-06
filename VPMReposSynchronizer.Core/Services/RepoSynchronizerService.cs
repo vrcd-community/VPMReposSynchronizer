@@ -62,7 +62,8 @@ public class RepoSynchronizerService(
                 {
                     logger.LogInformation("Uploading {PackageName}@{PackageVersion} to File Host Service", package.Name,
                         package.Version);
-                    fileId = await fileHostService.UploadFileAsync(tempFileName);
+                    var fileName = Path.GetFileName(new Uri(package.Url).AbsolutePath);
+                    fileId = await fileHostService.UploadFileAsync(tempFileName, fileName);
                     logger.LogInformation("Uploaded {PackageName}@{PackageVersion} to File Host Service", package.Name,
                         package.Version);
                 }
