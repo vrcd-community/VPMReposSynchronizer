@@ -89,16 +89,15 @@ public class S3FileHostService : IFileHostService
 
     public async Task<string> GetFileUriAsync(string fileId)
     {
-        var key = GetFileKey(fileId);
         if (_options.Value.EnablePublicAccess)
         {
-            return new Uri(_options.Value.CdnUrl, key).ToString();
+            return new Uri(_options.Value.CdnUrl, fileId).ToString();
         }
 
         return await _client.GetPreSignedURLAsync(new GetPreSignedUrlRequest
         {
             BucketName = _options.Value.BucketName,
-            Key = key,
+            Key = fileId,
             Expires = DateTime.UtcNow.AddSeconds(_options.Value.PreSignedUrlExpires)
         });
     }
