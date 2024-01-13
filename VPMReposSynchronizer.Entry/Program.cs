@@ -43,20 +43,21 @@ builder.Logging.AddOpenTelemetry(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
+    options.SwaggerDoc("v0", new OpenApiInfo
     {
-        Version = "v1",
+        Version = "v0",
         Title = "VPM Repos Synchronizer API",
         Description = "API for VPM Repos Synchronizer",
         Contact = new OpenApiContact
         {
             Name = "VRCD-Community",
-            Url = new Uri("https://github.com/vrcd-community")
+            Url = new Uri("https://github.com/vrcd-community"),
+            Email = "us@vrcd.org.cn"
         },
         License = new OpenApiLicense
         {
-            Name = "GPL3.0",
-            Url = new Uri("https://github.com/vrcd-community/VPMReposSynchronizer/blob/main/LICENSE")
+            Name = "AGPL3.0",
+            Url = new Uri("https://github.com/vrcd-community/VPMReposSynchronizer/blob/main/LICENSE.md")
         },
     });
 
@@ -165,7 +166,11 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v0/swagger.json", "VPMReposSynchronizer API v0");
+        options.DisplayRequestDuration();
+    });
     app.UseDeveloperExceptionPage();
     app.UseMigrationsEndPoint();
 }

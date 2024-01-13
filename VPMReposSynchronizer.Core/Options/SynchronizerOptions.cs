@@ -2,6 +2,6 @@
 
 public class SynchronizerOptions
 {
-    public string[] SourceRepoUrls { get; set; } = Array.Empty<string>();
+    public Dictionary<string, string> SourceRepos { get; set; } = new();
     public long SyncPeriod { get; set; } = 3600;
 }

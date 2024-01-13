@@ -12,6 +12,9 @@ using VPMReposSynchronizer.Core.Services.FileHost;
 
 namespace VPMReposSynchronizer.Entry.Controllers;
 
+/// <summary>
+/// VPM Repos Controller
+/// </summary>
 [ApiController]
 [Route("vpm")]
 [Produces("application/json")]
@@ -19,27 +22,141 @@ public class VpmRepoController(
     RepoMetaDataService repoMetaDataService,
     IFileHostService fileHostService,
     IOptions<MirrorRepoMetaDataOptions> options,
+    IOptions<SynchronizerOptions> synchronizerOptions,
     IMapper mapper) : ControllerBase
 {
+    /// <summary>
+    /// Deprecated. Synchronizer now use separate endpoint for each upstream, Use /vpm/{repoId} instead.
+    /// </summary>
+    /// <returns>Deprecated Response</returns>
+    /// <remarks>
+    /// Sample Response:
+    ///
+    ///     {
+    ///       "name": "Synchronizer now use separate endpoint for each upstream , Use /vpm/{repoId} instead",
+    ///       "author": "Synchronizer now use separate endpoint for each upstream , Use /vpm/{repoId} instead",
+    ///       "url": "http://localhost:5218/",
+    ///       "id": "local.debug.vpm.repo",
+    ///       "packages": {}
+    ///     }
+    ///
+    /// </remarks>
+    /// <response code="200">Deprecated Response</response>
     [HttpGet]
     [OutputCache(PolicyName = "vpm")]
-    public async Task<JsonResult> Index()
+    [ProducesResponseType<VpmRepo>(StatusCodes.Status200OK)]
+    [Obsolete("Synchronizer now use separate endpoint for each upstream, Use /vpm/{repoId} instead")]
+    public JsonResult Index()
     {
-        var vpmPackageEntities = await repoMetaDataService.GetVpmPackages();
+        var repo = new VpmRepo(
+            Name: "Synchronizer now use separate endpoint for each upstream , Use /vpm/{repoId} instead",
+            Author: "Synchronizer now use separate endpoint for each upstream , Use /vpm/{repoId} instead",
+            Url: options.Value.RepoUrl,
+            Id: options.Value.RepoId,
+            Packages: new Dictionary<string, VpmRepoPackageVersions>());
+
+        return new JsonResult(repo, new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+    }
+
+    /// <summary>
+    /// Get all upstream repos.
+    /// </summary>
+    /// <returns>All upstream repos</returns>
+    /// <remarks>
+    /// Sample Response:
+    ///
+    ///     {
+    ///         "curated": "https://packages.vrchat.com/curated"
+    ///     }
+    ///
+    /// </remarks>
+    /// <response code="200">Returns all upstream repos</response>
+    [HttpGet]
+    [Route("repos")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public Dictionary<string, string> GetRepoLists()
+    {
+        return synchronizerOptions.Value.SourceRepos;
+    }
+
+    /// <summary>
+    ///  Get a specific repo.
+    /// </summary>
+    /// <param name="repoId">Repo Id</param>
+    /// <returns>Specific vpm repo</returns>
+    /// <remarks>
+    /// Sample Response:
+    ///
+    ///     {
+    ///         "name": "curated@Local Debug VPM Repo",
+    ///         "author": "Nameless",
+    ///         "url": "http://localhost:5218/",
+    ///         "id": "local.debug.vpm.repo.curated",
+    ///         "packages": {
+    ///             "com.llealloo.audiolink": {
+    ///                 "versions": {
+    ///                     "1.2.1": {
+    ///                         "name": "com.llealloo.audiolink",
+    ///                         "displayName": "AudioLink",
+    ///                         "version": "1.2.1",
+    ///                         "unity": "2022.3",
+    ///                         "description": "Audio reactive prefabs for VRChat",
+    ///                         "url": "http://localhost:5218/files/32a21337cf828c516fd3da20945ddbe973db3a625fbd805be9d37eda7c462e72/com.llealloo.audiolink-1.2.1.zip",
+    ///                         "zipSHA256": "32a21337cf828c516fd3da20945ddbe973db3a625fbd805be9d37eda7c462e72",
+    ///                         "legacyPackages": [],
+    ///                         "legacyFolders": {
+    ///                             "Assets\\AudioLink": ""
+    ///                         },
+    ///                         "legacyFiles": {},
+    ///                         "dependencies": {},
+    ///                         "gitDependencies": {},
+    ///                         "vpmDependencies": {},
+    ///                         "keywords": [],
+    ///                         "samples": [
+    ///                         {
+    ///                             "displayName": "AudioLinkExampleScene",
+    ///                             "description": "An example scene showing off the capabilities of AudioLink.",
+    ///                             "path": "Samples~/AudioLinkExampleScene"
+    ///                         }
+    ///                         ],
+    ///                         "headers": {}
+    ///                     }
+    ///                 }
+    ///             }
+    ///         }
+    ///     }
+    ///
+    /// </remarks>
+    /// <response code="200">Specific vpm repo</response>
+    /// <response code="404">Repo not found</response>
+    [HttpGet]
+    [Route("{repoId}")]
+    [OutputCache(PolicyName = "vpm")]
+    [ProducesResponseType<VpmRepo>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<JsonResult> GetRepo(string repoId)
+    {
+        var vpmPackageEntities = await repoMetaDataService.GetVpmPackages(repoId);
 
         var packages =
             vpmPackageEntities
                 .GroupBy(package => package.Name)
                 .Select(package =>
                     package.Select(async version =>
-                            new KeyValuePair<string, VpmPackage>(version.Version,await GetPackageWithUrl(version)))
+                            new KeyValuePair<string, VpmPackage>(version.Version, await GetPackageWithUrl(version)))
                         .Select(task => new KeyValuePair<string, VpmPackage>(task.Result.Key, task.Result.Value))
                         .ToDictionary())
-                .Select(packageVersions => new KeyValuePair<string, VpmRepoPackageVersions>(packageVersions.First().Value.Name,
+                .Select(packageVersions => new KeyValuePair<string, VpmRepoPackageVersions>(
+                    packageVersions.First().Value.Name,
                     new VpmRepoPackageVersions(packageVersions)))
                 .ToDictionary();
 
-        var repo = new VpmRepo(options.Value.RepoName, options.Value.RepoAuthor, options.Value.RepoUrl, options.Value.RepoId,
+        var repo = new VpmRepo($"{repoId}@{options.Value.RepoName}", options.Value.RepoAuthor, options.Value.RepoUrl,
+            $"{options.Value.RepoId}.{repoId}",
             packages);
 
         return new JsonResult(repo, new JsonSerializerOptions

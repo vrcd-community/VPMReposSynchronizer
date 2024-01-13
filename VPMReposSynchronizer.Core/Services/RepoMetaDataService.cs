@@ -36,10 +36,11 @@ public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapp
         await defaultDbContext.SaveChangesAsync();
     }
 
-    public async Task AddOrUpdateVpmPackageAsync(VpmPackage vpmPackage, string fileId)
+    public async Task AddOrUpdateVpmPackageAsync(VpmPackage vpmPackage, string fileId, string repoId)
     {
         var entity = mapper.Map<VpmPackageEntity>(vpmPackage);
         entity.FileId = fileId;
+        entity.UpstreamId = repoId;
 
         await AddOrUpdateVpmPackageAsync(entity);
     }
@@ -47,5 +48,10 @@ public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapp
     public async Task<VpmPackageEntity[]> GetVpmPackages()
     {
         return await defaultDbContext.Packages.ToArrayAsync();
+    }
+
+    public async Task<VpmPackageEntity[]> GetVpmPackages(string repo)
+    {
+        return await defaultDbContext.Packages.Where(package => package.UpstreamId == repo).ToArrayAsync();
     }
 }

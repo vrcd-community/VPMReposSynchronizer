@@ -16,9 +16,10 @@ public class RepoSynchronizerHostService(
     public Task StartAsync(CancellationToken cancellationToken)
     {
         statusService.SyncStatus =
-            options.Value.SourceRepoUrls
-                .Select(url =>
-                    new KeyValuePair<string, SyncStatus>(url, new SyncStatus(null, null, SyncStatusType.Never)))
+            options.Value.SourceRepos
+                .Select(repo =>
+                    new KeyValuePair<string, SyncStatus>(repo.Key,
+                        new SyncStatus(null, null, repo.Value, SyncStatusType.Never)))
                 .ToDictionary();
 
         Task.Run(async () =>
@@ -26,13 +27,16 @@ public class RepoSynchronizerHostService(
             while (!cancellationToken.IsCancellationRequested)
             {
                 logger.LogInformation("Start Sync With Upstream Repo");
-                foreach (var repoUrl in options.Value.SourceRepoUrls)
+                foreach (var repo in options.Value.SourceRepos)
                 {
-                    logger.LogInformation("Starting Sync With {RepoUrl}", repoUrl);
+                    var repoId = repo.Key;
+                    var repoUrl = repo.Value;
+
+                    logger.LogInformation("Starting Sync With {RepoId}@{RepoUrl}", repoId, repoUrl);
 
                     var syncStartTime = DateTimeOffset.Now;
-                    statusService.SyncStatus[repoUrl] =
-                        new SyncStatus(syncStartTime, null, SyncStatusType.Syncing);
+                    statusService.SyncStatus[repoId] =
+                        new SyncStatus(syncStartTime, null, repoUrl, SyncStatusType.Syncing);
 
                     try
                     {
@@ -40,19 +44,19 @@ public class RepoSynchronizerHostService(
                         var repoSynchronizerService =
                             scope.ServiceProvider.GetRequiredService<RepoSynchronizerService>();
 
-                        await repoSynchronizerService.StartSync(repoUrl);
+                        await repoSynchronizerService.StartSync(repoUrl, repoId);
 
-                        logger.LogInformation("Successfully Sync With {RepoUrl}", repoUrl);
+                        logger.LogInformation("Successfully Sync With {RepoUrl}", repo);
 
-                        statusService.SyncStatus[repoUrl] =
-                            new SyncStatus(syncStartTime, DateTimeOffset.Now, SyncStatusType.Success);
+                        statusService.SyncStatus[repoId] =
+                            new SyncStatus(syncStartTime, DateTimeOffset.Now, repoUrl, SyncStatusType.Success);
                     }
                     catch (Exception e)
                     {
-                        logger.LogError(e, "Failed to Sync With {RepoUrl}", repoUrl);
+                        logger.LogError(e, "Failed to Sync With {RepoId}@{RepoUrl}", repoId, repoUrl);
 
-                        statusService.SyncStatus[repoUrl] =
-                            new SyncStatus(syncStartTime, DateTimeOffset.Now, SyncStatusType.Failed, e.ToString());
+                        statusService.SyncStatus[repoId] =
+                            new SyncStatus(syncStartTime, DateTimeOffset.Now, repoUrl, SyncStatusType.Failed, e.ToString());
                     }
                 }
 

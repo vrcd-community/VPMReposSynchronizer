@@ -12,9 +12,9 @@ public class RepoSynchronizerService(
     ILogger<RepoSynchronizerService> logger,
     IHttpClientFactory httpClientFactory)
 {
-    public async Task StartSync(string sourceRepoUrl)
+    public async Task StartSync(string sourceRepoUrl, string sourceRepoId)
     {
-        logger.LogInformation("Start Sync with: {RepoUrl}", sourceRepoUrl);
+        logger.LogInformation("Start Sync with: {SourceRepoId}@{RepoUrl}", sourceRepoId, sourceRepoUrl);
         using var httpClient = httpClientFactory.CreateClient("default");
 
         var repoResponse = await httpClient.GetStringAsync(sourceRepoUrl);
@@ -37,16 +37,17 @@ public class RepoSynchronizerService(
             var fileId = "";
             if (package.ZipSha256 is { } sha256 && await fileHostService.LookupFileByHashAsync(sha256) is { } tempFileId)
             {
-                logger.LogInformation("File is already Downloaded & Uploaded, Skip Download {PackageName}@{PackageVersion}",
+                logger.LogInformation("File is already Downloaded & Uploaded, Skip Download {PackageName}@{PackageVersion}@{SourceRepoId}",
                     package.Name,
-                    package.Version);
+                    package.Version,
+                    sourceRepoId);
                 fileId = tempFileId;
             }
 
             if (fileId == "")
             {
-                logger.LogInformation("Start Downloading {PackageName}@{PackageVersion}: {PackageUrl}", package.Name,
-                    package.Version, package.Url);
+                logger.LogInformation("Start Downloading {PackageName}@{PackageVersion}@{SourceRepoId}: {PackageUrl}", package.Name,
+                    package.Version, sourceRepoId, package.Url);
 
                 var tempFileName = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
                 await using var stream = await httpClient.GetStreamAsync(package.Url);
@@ -55,29 +56,30 @@ public class RepoSynchronizerService(
 
                 tempFileStream.Close();
 
-                logger.LogInformation("Downloaded {PackageName}@{PackageVersion}", package.Name, package.Version);
+                logger.LogInformation("Downloaded {PackageName}@{PackageVersion}@{SourceRepoId}", package.Name, package.Version, sourceRepoId);
 
                 var fileHash = await FileUtils.HashFile(tempFileName);
                 if (await fileHostService.LookupFileByHashAsync(fileHash) is null)
                 {
-                    logger.LogInformation("Uploading {PackageName}@{PackageVersion} to File Host Service", package.Name,
-                        package.Version);
+                    logger.LogInformation("Uploading {PackageName}@{PackageVersion}@{SourceRepoId} to File Host Service", package.Name,
+                        package.Version, sourceRepoId);
                     var fileName = Path.GetFileName(new Uri(package.Url).AbsolutePath);
                     fileId = await fileHostService.UploadFileAsync(tempFileName, fileName);
-                    logger.LogInformation("Uploaded {PackageName}@{PackageVersion} to File Host Service", package.Name,
-                        package.Version);
+                    logger.LogInformation("Uploaded {PackageName}@{PackageVersion}@{SourceRepoId} to File Host Service", package.Name,
+                        package.Version, sourceRepoId);
                 }
                 else
                 {
-                    logger.LogInformation("File is already Uploaded, Skip Upload {PackageName}@{PackageVersion}",
+                    logger.LogInformation("File is already Uploaded, Skip Upload {PackageName}@{PackageVersion}@{SourceRepoId}",
                         package.Name,
-                        package.Version);
+                        package.Version,
+                        sourceRepoId);
                 }
 
                 File.Delete(tempFileName);
             }
 
-            await repoMetaDataService.AddOrUpdateVpmPackageAsync(package, fileId);
+            await repoMetaDataService.AddOrUpdateVpmPackageAsync(package, fileId, sourceRepoId);
             logger.LogInformation("Add {PackageName}@{PackageVersion} to DataBase", package.Name, package.Version);
         }
     }

@@ -7,7 +7,11 @@ public class VpmPackageEntity
 {
     [Key]
     [MaxLength(500)]
-    public required string PackageId { get; set; } // e.g com.vrchat.worlds@3.5.0
+    public required string PackageId { get; set; } // e.g com.vrchat.worlds@3.5.0@official
+
+    [Required]
+    [MaxLength(100)]
+    public required string UpstreamId { get; set; }
 
     [Required]
     [MaxLength(500)]
@@ -15,6 +19,7 @@ public class VpmPackageEntity
     [MaxLength(500)]
     public string? DisplayName { get; set; }
     [Required]
+    [MaxLength(50)]
     public required string Version { get; set; }
 
     [MaxLength(10000)]
