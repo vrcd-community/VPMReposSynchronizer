@@ -28,6 +28,9 @@ public class RepoSynchronizerService(
             throw new InvalidOperationException("Deserialize Repo Response is not valid");
         }
 
+        logger.LogInformation("Save (Actual id is {ActualId}) {RepoId}@{RepoUrl} Repo MetaData", repo.Id, sourceRepoId, sourceRepoUrl);
+        await repoMetaDataService.AddOrUpdateRepoAsync(repo, sourceRepoId, sourceRepoUrl);
+
         logger.LogInformation("Found {PackageCount} Packages",
             repo.Packages.SelectMany(package => package.Value.Versions.Select(version => version.Value)).Count());
 
@@ -79,7 +82,7 @@ public class RepoSynchronizerService(
                 File.Delete(tempFileName);
             }
 
-            await repoMetaDataService.AddOrUpdateVpmPackageAsync(package, fileId, sourceRepoId);
+            await repoMetaDataService.AddOrUpdateVpmPackageAsync(package, fileId, sourceRepoId, repo.Id);
             logger.LogInformation("Add {PackageName}@{PackageVersion} to DataBase", package.Name, package.Version);
         }
     }

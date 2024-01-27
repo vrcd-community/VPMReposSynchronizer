@@ -11,10 +11,12 @@ public class DefaultDbContext : DbContext
 
     public DbSet<VpmPackageEntity> Packages { get; set; }
     public DbSet<S3FileRecordEntity> S3FileRecords { get; set; }
+    public DbSet<VpmRepoEntity> Repos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<VpmPackageEntity>().ToTable("Packages");
         modelBuilder.Entity<S3FileRecordEntity>().ToTable("S3FileRecords");
+        modelBuilder.Entity<VpmRepoEntity>().ToTable("Repos");
     }
 }

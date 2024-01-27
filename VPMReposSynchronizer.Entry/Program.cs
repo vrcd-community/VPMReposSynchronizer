@@ -127,6 +127,7 @@ switch (fileHostServiceType)
 
 builder.Services.AddTransient<RepoMetaDataService>();
 builder.Services.AddTransient<RepoSynchronizerService>();
+builder.Services.AddTransient<RepoBrowserService>();
 builder.Services.AddHostedService<RepoSynchronizerHostService>();
 builder.Services.AddSingleton<RepoSynchronizerStatusService>();
 

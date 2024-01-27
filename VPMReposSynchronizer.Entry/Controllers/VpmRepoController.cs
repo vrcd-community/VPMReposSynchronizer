@@ -155,7 +155,7 @@ public class VpmRepoController(
                     new VpmRepoPackageVersions(packageVersions)))
                 .ToDictionary();
 
-        var repo = new VpmRepo($"{repoId}@{options.Value.RepoName}", options.Value.RepoAuthor, options.Value.RepoUrl,
+        var repo = new VpmRepo($"{repoId}@{options.Value.RepoName}", options.Value.RepoAuthor, options.Value.RepoUrl.Replace("{id}", repoId),
             $"{options.Value.RepoId}.{repoId}",
             packages);
 
