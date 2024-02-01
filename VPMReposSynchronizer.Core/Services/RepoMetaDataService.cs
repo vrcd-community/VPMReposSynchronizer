@@ -89,6 +89,10 @@ public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapp
     public async Task AddOrUpdateRepoAsync(VpmRepo vpmRepo, string configurationId, string upstreamUrl)
     {
         var entity = mapper.Map<VpmRepoEntity>(vpmRepo);
+
+        if (vpmRepo.Id is null)
+            entity.Id = configurationId;
+
         entity.ConfigurationId = configurationId;
         entity.UpStreamUrl = upstreamUrl;
 
