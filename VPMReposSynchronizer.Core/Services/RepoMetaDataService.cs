@@ -116,7 +116,8 @@ public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapp
 
     public async Task<VpmPackageEntity?> GetVpmPackage(string packageName, string packageVersion)
     {
-        return await defaultDbContext.Packages.FindAsync($"{packageName}@{packageVersion}");
+        return await defaultDbContext.Packages.AsNoTracking()
+            .FirstAsync(package => package.PackageId == $"{packageName}@{packageVersion}");
     }
 
     public async Task<VpmPackageEntity[]> GetVpmPackages(string repo)
