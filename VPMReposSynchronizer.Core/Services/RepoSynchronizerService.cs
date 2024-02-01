@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Services.FileHost;
 using VPMReposSynchronizer.Core.Utils;
@@ -48,7 +47,7 @@ public class RepoSynchronizerService(
                     package.Version,
                     sourceRepoId);
 
-                await repoMetaDataService.AddOrUpdateVpmPackageAsync(package, packageEntity.FileId, sourceRepoId, repo.Id);
+                await repoMetaDataService.AddOrUpdateVpmPackageAsync(package, packageEntity.FileId, sourceRepoId, repo.Id ?? sourceRepoId);
                 logger.LogInformation("Add {PackageName}@{PackageVersion} to DataBase", package.Name, package.Version);
 
                 continue;
@@ -106,7 +105,7 @@ public class RepoSynchronizerService(
                 File.Delete(tempFileName);
             }
 
-            await repoMetaDataService.AddOrUpdateVpmPackageAsync(package, fileId, sourceRepoId, repo.Id);
+            await repoMetaDataService.AddOrUpdateVpmPackageAsync(package, fileId, sourceRepoId, repo.Id ?? sourceRepoId);
             logger.LogInformation("Add {PackageName}@{PackageVersion} to DataBase", package.Name, package.Version);
         }
     }

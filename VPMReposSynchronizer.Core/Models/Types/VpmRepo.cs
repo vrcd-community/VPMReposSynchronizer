@@ -6,7 +6,7 @@ public record VpmRepo(
     string Name,
     string Author,
     string Url,
-    string Id,
+    string? Id, // For some mother f****k repo which don't have a id
     Dictionary<string, VpmRepoPackageVersions> Packages
 );
 
