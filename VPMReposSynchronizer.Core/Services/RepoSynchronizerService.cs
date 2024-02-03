@@ -82,7 +82,7 @@ public class RepoSynchronizerService(
                     package.Version, sourceRepoId);
 
                 var fileHash = await FileUtils.HashFile(tempFileName);
-                if (await fileHostService.LookupFileByHashAsync(fileHash) is null)
+                if (await fileHostService.LookupFileByHashAsync(fileHash) is not {} fileRecordId)
                 {
                     logger.LogInformation(
                         "Uploading {PackageName}@{PackageVersion}@{SourceRepoId} to File Host Service", package.Name,
@@ -100,6 +100,8 @@ public class RepoSynchronizerService(
                         package.Name,
                         package.Version,
                         sourceRepoId);
+
+                    fileId = fileRecordId;
                 }
 
                 File.Delete(tempFileName);
