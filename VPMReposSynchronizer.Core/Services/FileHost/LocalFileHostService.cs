@@ -5,7 +5,7 @@ using VPMReposSynchronizer.Core.Utils;
 
 namespace VPMReposSynchronizer.Core.Services.FileHost;
 
-public class LocalFileHostService(IOptions<LocalFileHostOptions> options, ILogger<LocalFileHostService> logger) : IFileHostService
+public class LocalFileHostService(IOptions<LocalFileHostOptions> options, IOptions<FileHostServiceOptions> fileHostOptions, ILogger<LocalFileHostService> logger) : IFileHostService
 {
     private readonly string _filePath = options.Value.FilesPath;
 
@@ -49,7 +49,7 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options, ILogge
         var filePath = GetFilePath(fileId);
 
         if (filePath is not null && File.Exists(filePath))
-            return Task.FromResult(new Uri(options.Value.BaseUrl, filePath).ToString());
+            return Task.FromResult(new Uri(fileHostOptions.Value.BaseUrl, filePath).ToString());
 
         var exception = new InvalidOperationException("File Id (File Path) Not found",
             new FileNotFoundException("File not found", filePath));
@@ -64,6 +64,13 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options, ILogge
         var filePath = GetFilePath(hash);
 
         return Task.FromResult(filePath is null ? null : File.Exists(filePath) ? hash : null);
+    }
+
+    public Task<bool> IsFileExist(string fileId)
+    {
+        var filePath = GetFilePath(fileId);
+
+        return Task.FromResult(File.Exists(filePath));
     }
 
     private string? GetFilePath(string hash)

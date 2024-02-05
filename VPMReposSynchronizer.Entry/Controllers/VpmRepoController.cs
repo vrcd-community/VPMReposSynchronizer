@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types;
@@ -20,9 +21,9 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [Produces("application/json")]
 public class VpmRepoController(
     RepoMetaDataService repoMetaDataService,
-    IFileHostService fileHostService,
     IOptions<MirrorRepoMetaDataOptions> options,
     IOptions<SynchronizerOptions> synchronizerOptions,
+    IOptions<FileHostServiceOptions> fileHostOptions,
     IMapper mapper) : ControllerBase
 {
     /// <summary>
@@ -146,9 +147,8 @@ public class VpmRepoController(
             vpmPackageEntities
                 .GroupBy(package => package.Name)
                 .Select(package =>
-                    package.Select(async version =>
-                            new KeyValuePair<string, VpmPackage>(version.Version, await GetPackageWithUrl(version)))
-                        .Select(task => new KeyValuePair<string, VpmPackage>(task.Result.Key, task.Result.Value))
+                    package.Select(version =>
+                            new KeyValuePair<string, VpmPackage>(version.Version, GetPackageWithUrl(version)))
                         .ToDictionary())
                 .Select(packageVersions => new KeyValuePair<string, VpmRepoPackageVersions>(
                     packageVersions.First().Value.Name,
@@ -166,10 +166,12 @@ public class VpmRepoController(
         });
     }
 
-    private async Task<VpmPackage> GetPackageWithUrl(VpmPackageEntity package)
+    private VpmPackage GetPackageWithUrl(VpmPackageEntity package)
     {
         var vpmPackage = mapper.Map<VpmPackage>(package);
-        vpmPackage.Url = await fileHostService.GetFileUriAsync(package.FileId);
+
+        var fileDownloadEndpoint = new Uri(fileHostOptions.Value.BaseUrl, "files/download").ToString();
+        vpmPackage.Url = QueryHelpers.AddQueryString(fileDownloadEndpoint, "fileId", package.FileId);
 
         return vpmPackage;
     }

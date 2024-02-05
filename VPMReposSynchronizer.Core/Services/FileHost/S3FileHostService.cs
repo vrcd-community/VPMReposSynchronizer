@@ -102,6 +102,11 @@ public class S3FileHostService : IFileHostService
         return fileRecord?.FileKey;
     }
 
+    public async Task<bool> IsFileExist(string fileId)
+    {
+        return await _dbContext.S3FileRecords.AnyAsync(record => record.FileKey == fileId);
+    }
+
     private string GetFileKey(string fileHash, string fileName)
     {
         return _options.Value.FileKeyPrefix + fileHash + "/" + fileName + _options.Value.FileKeySuffix;

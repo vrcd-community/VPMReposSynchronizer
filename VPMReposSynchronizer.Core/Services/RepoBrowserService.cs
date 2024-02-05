@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
+using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Models.Types.RepoBrowser;
 using VPMReposSynchronizer.Core.Options;
@@ -10,6 +12,7 @@ public class RepoBrowserService(
     RepoMetaDataService repoMetaDataService,
     RepoSynchronizerStatusService repoSynchronizerStatusService,
     IOptions<MirrorRepoMetaDataOptions> options,
+    IOptions<FileHostServiceOptions> fileHostOptions,
     IMapper mapper)
 {
     public async ValueTask<BrowserRepo[]> GetAllReposAsync()
@@ -31,7 +34,8 @@ public class RepoBrowserService(
     public async ValueTask<BrowserPackage[]?> GetAllPackagesAsync(string repoId)
     {
         var packageEntities = await repoMetaDataService.GetVpmPackages(repoId);
-        var packages = mapper.Map<VpmPackage[]>(packageEntities)
+        var packages = packageEntities
+            .Select(GetPackageWithUrl)
             .GroupBy(package => package.Name)
             .Select(packagesGroup =>
                 new BrowserPackage(Latest: packagesGroup.First(), Versions: packagesGroup.ToArray(), RepoId: repoId, RepoUrl: GetRepoUrl(repoId)));
@@ -43,9 +47,8 @@ public class RepoBrowserService(
     {
         var packagesEntities = await repoMetaDataService.SearchVpmPackages(keyword);
 
-        var packages = mapper.Map<VpmPackage[]>(packagesEntities);
-
-        return packages
+        return packagesEntities
+            .Select(GetPackageWithUrl)
             .GroupBy(package => package.Name)
             .Select((packagesGroup, index) =>
                 new BrowserPackage(Latest: packagesGroup.First(), Versions: packagesGroup.ToArray(),
@@ -76,7 +79,8 @@ public class RepoBrowserService(
     {
         var packageEntities = await repoMetaDataService.GetVpmPackages(repoId);
 
-        var packages = mapper.Map<VpmPackage[]>(packageEntities)
+        var packages = packageEntities
+            .Select(GetPackageWithUrl)
             .Where(package => package.Name == packageName)
             .Select(package => package)
             .ToArray();
@@ -90,5 +94,15 @@ public class RepoBrowserService(
     private string GetRepoUrl(string id)
     {
         return options.Value.RepoUrl.Replace("{id}", id);
+    }
+
+    private VpmPackage GetPackageWithUrl(VpmPackageEntity package)
+    {
+        var vpmPackage = mapper.Map<VpmPackage>(package);
+
+        var fileDownloadEndpoint = new Uri(fileHostOptions.Value.BaseUrl, "files/download").ToString();
+        vpmPackage.Url = QueryHelpers.AddQueryString(fileDownloadEndpoint, "fileId", package.FileId);
+
+        return vpmPackage;
     }
 }
