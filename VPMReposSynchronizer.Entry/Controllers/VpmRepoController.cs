@@ -19,6 +19,7 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [ApiController]
 [Route("vpm")]
 [Produces("application/json")]
+[OutputCache(PolicyName = "vpm")]
 public class VpmRepoController(
     RepoMetaDataService repoMetaDataService,
     IOptions<MirrorRepoMetaDataOptions> options,
@@ -44,7 +45,6 @@ public class VpmRepoController(
     /// </remarks>
     /// <response code="200">Deprecated Response</response>
     [HttpGet]
-    [OutputCache(PolicyName = "vpm")]
     [ProducesResponseType<VpmRepo>(StatusCodes.Status200OK)]
     [Obsolete("Synchronizer now use separate endpoint for each upstream, Use /vpm/{repoId} instead")]
     public JsonResult Index()

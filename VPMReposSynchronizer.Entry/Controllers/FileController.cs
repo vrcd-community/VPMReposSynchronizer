@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using VPMReposSynchronizer.Core.Services.FileHost;
 
 namespace VPMReposSynchronizer.Entry.Controllers;
@@ -23,6 +24,7 @@ public class FileController(IFileHostService fileHostService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [EnableRateLimiting("download")]
     public async Task<IActionResult> DownloadFile(string fileId)
     {
         if (!await fileHostService.IsFileExist(fileId))

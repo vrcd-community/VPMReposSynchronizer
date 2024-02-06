@@ -1,5 +1,8 @@
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
@@ -9,6 +12,7 @@ using Serilog;
 using Serilog.Templates;
 using Serilog.Templates.Themes;
 using VPMReposSynchronizer.Core.DbContexts;
+using VPMReposSynchronizer.Core.Extensions;
 using VPMReposSynchronizer.Core.Models.Mappers;
 using VPMReposSynchronizer.Core.Options;
 using VPMReposSynchronizer.Core.Services;
@@ -94,13 +98,10 @@ builder.Services.AddAutoMapper(typeof(VpmPackageProfile));
 
 #region FileHostService
 
-if (!Enum.TryParse(builder.Configuration.GetSection("FileHost")["FileHostServiceType"],
-        out FileHostServiceType fileHostServiceType))
-{
-    fileHostServiceType = FileHostServiceType.LocalFileHost;
-}
+var fileHostServiceOptions = builder.Configuration.GetSection("FileHost").Get<FileHostServiceOptions>() ??
+                             new FileHostServiceOptions();
 
-switch (fileHostServiceType)
+switch (fileHostServiceOptions.FileHostServiceType)
 {
     case FileHostServiceType.LocalFileHost:
         var filesPath = builder.Configuration.GetSection("LocalFileHost")["FilesPath"] ??
@@ -146,7 +147,34 @@ builder.Services.AddControllers();
 
 builder.Services.AddOutputCache(options =>
 {
-    options.AddPolicy("vpm", policyBuilder => policyBuilder.Expire(TimeSpan.FromSeconds(30)));
+    options.AddPolicy("vpm", policyBuilder => policyBuilder.Expire(TimeSpan.FromSeconds(10)));
+});
+
+builder.Services.AddRateLimiter(rateLimiterOptions =>
+{
+    rateLimiterOptions.OnRejected = (context, _) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)retryAfter.TotalSeconds).ToString(NumberFormatInfo.InvariantInfo);
+        }
+
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+
+        return new ValueTask();
+    };
+
+    rateLimiterOptions.AddPolicy("download", context =>
+    {
+        return RateLimitPartition.GetFixedWindowLimiter(context.GetIpAddress(), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = fileHostServiceOptions.RateLimitPerWindow,
+            Window =  TimeSpan.FromMilliseconds(fileHostServiceOptions.RateLimitWindow),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        });
+    });
 });
 
 builder.Services.AddHttpClient("default", client =>
@@ -187,7 +215,7 @@ using (var scope = app.Services.CreateScope())
 
 app.UseOutputCache();
 
-if (fileHostServiceType == FileHostServiceType.LocalFileHost)
+if (fileHostServiceOptions.FileHostServiceType == FileHostServiceType.LocalFileHost)
 {
     var filesPath = builder.Configuration.GetSection("LocalFileHost")["FilesPath"] ??
                     new LocalFileHostOptions().FilesPath;
@@ -217,5 +245,8 @@ app.UseHttpsRedirection();
 app.MapControllers();
 
 app.UseCors();
+
+if (fileHostServiceOptions.EnableRateLimit)
+    app.UseRateLimiter();
 
 app.Run();
