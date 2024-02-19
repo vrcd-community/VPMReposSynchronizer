@@ -38,7 +38,8 @@ public class RepoBrowserService(
             .Select(GetPackageWithUrl)
             .GroupBy(package => package.Name)
             .Select(packagesGroup =>
-                new BrowserPackage(Latest: packagesGroup.First(), Versions: packagesGroup.ToArray(), RepoId: repoId, RepoUrl: GetRepoUrl(repoId)));
+                new BrowserPackage(Latest: packagesGroup.First(), Versions: packagesGroup.ToArray(), RepoId: repoId,
+                    RepoUrl: GetRepoUrl(repoId)));
 
         return packages.ToArray();
     }
@@ -47,13 +48,18 @@ public class RepoBrowserService(
     {
         var packagesEntities = await repoMetaDataService.SearchVpmPackages(keyword);
 
-        return packagesEntities
-            .Select(GetPackageWithUrl)
+        // packagesEntities
+        //     .GroupBy(package => package.Name)
+        //     .Select()
+
+        var packagesGroup = packagesEntities
             .GroupBy(package => package.Name)
-            .Select((packagesGroup, index) =>
-                new BrowserPackage(Latest: packagesGroup.First(), Versions: packagesGroup.ToArray(),
-                    RepoId: packagesEntities[index].UpstreamId,
-                    RepoUrl: GetRepoUrl(packagesEntities[index].UpstreamId)))
+            .ToArray();
+
+        return packagesGroup.Select((group, index) =>
+                new BrowserPackage(Latest: GetPackageWithUrl(group.First()), Versions: group.Select(GetPackageWithUrl).ToArray(),
+                    RepoId: packagesGroup[index].Select(pkg => pkg.UpstreamId).First(),
+                    RepoUrl: GetRepoUrl(packagesGroup[index].Select(pkg => pkg.UpstreamId).First())))
             .ToArray();
     }
 
@@ -100,7 +106,8 @@ public class RepoBrowserService(
     {
         var vpmPackage = mapper.Map<VpmPackage>(package);
 
-        var fileDownloadEndpoint = new Uri(fileHostOptions.Value.BaseUrl, $"files/download/{package.UpstreamId}@{package.PackageId}.zip").ToString();
+        var fileDownloadEndpoint = new Uri(fileHostOptions.Value.BaseUrl,
+            $"files/download/{package.UpstreamId}@{package.PackageId}.zip").ToString();
         vpmPackage.Url = QueryHelpers.AddQueryString(fileDownloadEndpoint, "fileId", package.FileId);
 
         return vpmPackage;
