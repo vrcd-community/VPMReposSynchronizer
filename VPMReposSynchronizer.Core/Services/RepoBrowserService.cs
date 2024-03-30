@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
+using Semver;
 using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Models.Types.RepoBrowser;
@@ -37,6 +38,7 @@ public class RepoBrowserService(
         var packages = packageEntities
             .Select(GetPackageWithUrl)
             .GroupBy(package => package.Name)
+            .Select(package => package.OrderByDescending(pkg => pkg.Version, SemVersion.SortOrderComparer))
             .Select(packagesGroup =>
                 new BrowserPackage(Latest: packagesGroup.First(), Versions: packagesGroup.ToArray(), RepoId: repoId,
                     RepoUrl: GetRepoUrl(repoId)));
@@ -48,18 +50,19 @@ public class RepoBrowserService(
     {
         var packagesEntities = await repoMetaDataService.SearchVpmPackages(keyword);
 
-        // packagesEntities
-        //     .GroupBy(package => package.Name)
-        //     .Select()
-
         var packagesGroup = packagesEntities
             .GroupBy(package => package.Name)
             .ToArray();
 
         return packagesGroup.Select((group, index) =>
-                new BrowserPackage(Latest: GetPackageWithUrl(group.First()), Versions: group.Select(GetPackageWithUrl).ToArray(),
+            {
+                var versions = group.Select(GetPackageWithUrl)
+                    .OrderByDescending(package => package.Version, SemVersion.SortOrderComparer).ToArray();
+
+                return new BrowserPackage(Latest: versions[0], Versions: versions,
                     RepoId: packagesGroup[index].Select(pkg => pkg.UpstreamId).First(),
-                    RepoUrl: GetRepoUrl(packagesGroup[index].Select(pkg => pkg.UpstreamId).First())))
+                    RepoUrl: GetRepoUrl(packagesGroup[index].Select(pkg => pkg.UpstreamId).First()));
+            })
             .ToArray();
     }
 
@@ -89,6 +92,7 @@ public class RepoBrowserService(
             .Select(GetPackageWithUrl)
             .Where(package => package.Name == packageName)
             .Select(package => package)
+            .OrderByDescending(package => package.Version, SemVersion.SortOrderComparer)
             .ToArray();
 
         return packages.Length == 0

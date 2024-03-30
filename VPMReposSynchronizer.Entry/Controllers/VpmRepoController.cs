@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
+using Semver;
 using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Options;
@@ -152,10 +153,13 @@ public class VpmRepoController(
                         .ToDictionary())
                 .Select(packageVersions => new KeyValuePair<string, VpmRepoPackageVersions>(
                     packageVersions.First().Value.Name,
-                    new VpmRepoPackageVersions(packageVersions)))
+                    new VpmRepoPackageVersions(packageVersions
+                        .OrderByDescending(package => package.Value.Version, SemVersion.SortOrderComparer)
+                        .ToDictionary())))
                 .ToDictionary();
 
-        var repo = new VpmRepo($"{repoId}@{options.Value.RepoName}", options.Value.RepoAuthor, options.Value.RepoUrl.Replace("{id}", repoId),
+        var repo = new VpmRepo($"{repoId}@{options.Value.RepoName}", options.Value.RepoAuthor,
+            options.Value.RepoUrl.Replace("{id}", repoId),
             $"{options.Value.RepoId}.{repoId}",
             packages);
 
@@ -170,7 +174,8 @@ public class VpmRepoController(
     {
         var vpmPackage = mapper.Map<VpmPackage>(package);
 
-        var fileDownloadEndpoint = new Uri(fileHostOptions.Value.BaseUrl, $"files/download/{package.UpstreamId}@{package.PackageId}.zip").ToString();
+        var fileDownloadEndpoint = new Uri(fileHostOptions.Value.BaseUrl,
+            $"files/download/{package.UpstreamId}@{package.PackageId}.zip").ToString();
         vpmPackage.Url = QueryHelpers.AddQueryString(fileDownloadEndpoint, "fileId", package.FileId);
 
         return vpmPackage;
