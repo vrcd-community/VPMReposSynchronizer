@@ -19,24 +19,48 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="AutoMapper" Version="13.0.1" />
-      <PackageReference Include="AWSSDK.S3" Version="3.7.305.28" />
-      <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.2" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.2" />
-      <PackageReference Include="Semver" Version="2.3.0" />
-      <PackageReference Include="Serilog" Version="3.1.1" />
-      <PackageReference Include="Serilog.AspNetCore" Version="8.0.1" />
-      <PackageReference Include="Serilog.Expressions" Version="4.0.0" />
-      <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
-      <PackageReference Include="Serilog.Settings.AppSettings" Version="2.2.2" />
-      <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
-      <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
-      <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+        <PackageReference Include="AutoMapper" Version="13.0.1"/>
+        <PackageReference Include="AWSSDK.S3" Version="3.7.305.28"/>
+        <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.2"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.2"/>
+        <PackageReference Include="Semver" Version="2.3.0"/>
+        <PackageReference Include="Serilog" Version="3.1.1"/>
+        <PackageReference Include="Serilog.AspNetCore" Version="8.0.1"/>
+        <PackageReference Include="Serilog.Expressions" Version="4.0.0"/>
+        <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0"/>
+        <PackageReference Include="Serilog.Settings.AppSettings" Version="2.2.2"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1"/>
+        <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="5.0.0"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <None Remove="gitinfo.txt"/>
+    </ItemGroup>
+
+    <ImportGroup>
+        <Import Project="GitInfo.targets"/>
+    </ImportGroup>
+
+    <Target Name="AddGitInfo" BeforeTargets="BeforeBuild">
+        <ItemGroup>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+                <_Parameter1>GitCommitHash</_Parameter1>
+                <_Parameter2>$(GitCommitHash)</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+                <_Parameter1>GitBranchName</_Parameter1>
+                <_Parameter2>$(GitBranchName)</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+                <_Parameter1>BuildTime</_Parameter1>
+                <_Parameter2>$(BuildTime)</_Parameter2>
+            </AssemblyAttribute>
+        </ItemGroup>
+    </Target>
 </Project>
