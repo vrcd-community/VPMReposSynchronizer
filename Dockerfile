@@ -9,13 +9,17 @@ RUN dotnet restore "VPMReposSynchronizer.Entry/VPMReposSynchronizer.Entry.csproj
 COPY ["VPMReposSynchronizer.Core/VPMReposSynchronizer.Core.csproj", "VPMReposSynchronizer.Core/"]
 RUN dotnet restore "VPMReposSynchronizer.Core/VPMReposSynchronizer.Core.csproj"
 COPY . .
-WORKDIR "/src/VPMReposSynchronizer.Entry"
-RUN dotnet build "VPMReposSynchronizer.Entry.csproj" -c Release -o /app/build
+
+RUN apt-get update && apt-get install -y git
+
+RUN dotnet build "VPMReposSynchronizer.Entry/VPMReposSynchronizer.Entry.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "VPMReposSynchronizer.Entry.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "VPMReposSynchronizer.Entry/VPMReposSynchronizer.Entry.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+EXPOSE 8080
 ENTRYPOINT ["dotnet", "VPMReposSynchronizer.Entry.dll"]
