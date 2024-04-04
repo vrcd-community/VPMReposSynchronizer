@@ -11,7 +11,7 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [ApiController]
 [Route("status")]
 [Produces("application/json")]
-public class StatusController(RepoSynchronizerStatusService repoSynchronizerStatusService) : ControllerBase
+public class StatusController(RepoSyncTaskService repoSyncTaskService) : ControllerBase
 {
     /// <summary>
     /// Get sync status.
@@ -38,9 +38,11 @@ public class StatusController(RepoSynchronizerStatusService repoSynchronizerStat
     [ProducesResponseType<SyncStatusPublic[]>(StatusCodes.Status200OK)]
     public SyncStatusPublic[] SyncStatus()
     {
-        return repoSynchronizerStatusService.SyncStatus
-            .Select(status => new SyncStatusPublic(status.Key, status.Value))
-            .ToArray();
+        // return repoSynchronizerStatusService.SyncStatus
+        //     .Select(status => new SyncStatusPublic(status.Key, status.Value))
+        //     .ToArray();
+
+        return [];
     }
 
     /// <summary>

@@ -56,7 +56,7 @@ public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapp
     public async Task AddRepoAsync(VpmRepo vpmRepo, string configurationId)
     {
         var entity = mapper.Map<VpmRepoEntity>(vpmRepo);
-        entity.ConfigurationId = configurationId;
+        entity.Id = configurationId;
 
         defaultDbContext.Repos.Add(entity);
         await defaultDbContext.SaveChangesAsync();
@@ -65,7 +65,7 @@ public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapp
     public async Task AddRepoAsync(VpmRepo vpmRepo, string configurationId, string upstreamUrl)
     {
         var entity = mapper.Map<VpmRepoEntity>(vpmRepo);
-        entity.ConfigurationId = configurationId;
+        entity.Id = configurationId;
         entity.UpStreamUrl = upstreamUrl;
 
         defaultDbContext.Repos.Add(entity);
@@ -74,7 +74,7 @@ public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapp
 
     public async Task AddOrUpdateRepoAsync(VpmRepoEntity vpmRepoEntity)
     {
-        if (await defaultDbContext.Repos.AnyAsync(package => package.Id == vpmRepoEntity.Id))
+        if (await defaultDbContext.Repos.AnyAsync(package => package.RepoId == vpmRepoEntity.RepoId))
         {
             defaultDbContext.Repos.Update(vpmRepoEntity);
         }
@@ -91,9 +91,9 @@ public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapp
         var entity = mapper.Map<VpmRepoEntity>(vpmRepo);
 
         if (vpmRepo.Id is null)
-            entity.Id = configurationId;
+            entity.RepoId = configurationId;
 
-        entity.ConfigurationId = configurationId;
+        entity.Id = configurationId;
         entity.UpStreamUrl = upstreamUrl;
 
         await AddOrUpdateRepoAsync(entity);
@@ -104,9 +104,9 @@ public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapp
         return await defaultDbContext.Repos.ToArrayAsync();
     }
 
-    public async Task<VpmRepoEntity?> GetRepoByConfigurationId(string id)
+    public async Task<VpmRepoEntity?> GetRepoById(string id)
     {
-        return await defaultDbContext.Repos.FirstOrDefaultAsync(entity => entity.ConfigurationId == id);
+        return await defaultDbContext.Repos.FirstOrDefaultAsync(entity => entity.Id == id);
     }
 
     public async Task<VpmPackageEntity[]> GetVpmPackages()

@@ -11,7 +11,6 @@ namespace VPMReposSynchronizer.Core.Services;
 
 public class RepoBrowserService(
     RepoMetaDataService repoMetaDataService,
-    RepoSynchronizerStatusService repoSynchronizerStatusService,
     IOptions<MirrorRepoMetaDataOptions> options,
     IOptions<FileHostServiceOptions> fileHostOptions,
     IMapper mapper)
@@ -21,14 +20,13 @@ public class RepoBrowserService(
         var repoEntities = await repoMetaDataService.GetAllRepos();
 
         return repoEntities.Select(entity => new BrowserRepo(
-                ApiId: entity.ConfigurationId,
+                ApiId: entity.Id,
                 Name: entity.Name,
-                UpstreamId: entity.Id,
+                UpstreamId: entity.RepoId,
                 UpstreamUrl: entity.UpStreamUrl,
                 Author: entity.Author,
-                RepoUrl: GetRepoUrl(entity.ConfigurationId),
-                SyncStatus: new SyncStatusPublic(entity.ConfigurationId,
-                    repoSynchronizerStatusService.SyncStatus[entity.ConfigurationId])))
+                RepoUrl: GetRepoUrl(entity.Id),
+                SyncStatus: new SyncStatusPublic(DateTimeOffset.Now, DateTimeOffset.Now, SyncStatusType.Syncing, "", "")))
             .ToArray();
     }
 
@@ -68,20 +66,19 @@ public class RepoBrowserService(
 
     public async ValueTask<BrowserRepo?> GetRepoAsync(string id)
     {
-        var repoEntity = await repoMetaDataService.GetRepoByConfigurationId(id);
+        var repoEntity = await repoMetaDataService.GetRepoById(id);
 
         if (repoEntity is null)
             return null;
 
         return new BrowserRepo(
-            ApiId: repoEntity.ConfigurationId,
+            ApiId: repoEntity.Id,
             Name: repoEntity.Name,
-            UpstreamId: repoEntity.Id,
+            UpstreamId: repoEntity.RepoId,
             UpstreamUrl: repoEntity.UpStreamUrl,
             Author: repoEntity.Author,
             RepoUrl: GetRepoUrl(id),
-            SyncStatus: new SyncStatusPublic(repoEntity.ConfigurationId,
-                repoSynchronizerStatusService.SyncStatus[repoEntity.ConfigurationId]));
+            SyncStatus: new SyncStatusPublic(DateTimeOffset.Now, DateTimeOffset.Now, SyncStatusType.Syncing, "", ""));
     }
 
     public async ValueTask<BrowserPackage?> GetPackageAsync(string repoId, string packageName)

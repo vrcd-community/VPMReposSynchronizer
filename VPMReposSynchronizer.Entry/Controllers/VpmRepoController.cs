@@ -24,7 +24,6 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 public class VpmRepoController(
     RepoMetaDataService repoMetaDataService,
     IOptions<MirrorRepoMetaDataOptions> options,
-    IOptions<SynchronizerOptions> synchronizerOptions,
     IOptions<FileHostServiceOptions> fileHostOptions,
     IMapper mapper) : ControllerBase
 {
@@ -79,10 +78,11 @@ public class VpmRepoController(
     /// <response code="200">Returns all upstream repos</response>
     [HttpGet]
     [Route("repos")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public Dictionary<string, string> GetRepoLists()
+    [ProducesResponseType<Dictionary<string, string>>(StatusCodes.Status200OK)]
+    public async Task<Dictionary<string, string>> GetRepoLists()
     {
-        return synchronizerOptions.Value.SourceRepos;
+        var repos = await repoMetaDataService.GetAllRepos();
+        return repos.Select(repo => new KeyValuePair<string, string>(repo.Id, repo.UpStreamUrl)).ToDictionary();
     }
 
     /// <summary>

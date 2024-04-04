@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Threading.RateLimiting;
+using Cronos;
+using FreeScheduler;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -75,7 +77,6 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Configuration.AddEnvironmentVariables();
 
-builder.Services.Configure<SynchronizerOptions>(builder.Configuration.GetSection("Synchronizer"));
 builder.Services.Configure<MirrorRepoMetaDataOptions>(builder.Configuration.GetSection("MirrorRepoMetaData"));
 
 builder.Services.Configure<FileHostServiceOptions>(builder.Configuration.GetSection("FileHost"));
@@ -129,8 +130,32 @@ switch (fileHostServiceOptions.FileHostServiceType)
 builder.Services.AddTransient<RepoMetaDataService>();
 builder.Services.AddTransient<RepoSynchronizerService>();
 builder.Services.AddTransient<RepoBrowserService>();
+builder.Services.AddTransient<RepoSyncTaskService>();
 builder.Services.AddHostedService<RepoSynchronizerHostService>();
-builder.Services.AddSingleton<RepoSynchronizerStatusService>();
+builder.Services.AddSingleton(services =>
+{
+    return new FreeSchedulerBuilder()
+        .UseCustomInterval(task =>
+            CronExpression.Parse(task.IntervalArgument).GetNextOccurrence(DateTime.UtcNow) - DateTime.UtcNow)
+        .OnExecuting(task =>
+        {
+            Log.Information("Task {Task} ({TaskId}) executing", task.Topic, task.Id);
+
+            Task.Run(async () =>
+            {
+                using var scope = services.CreateScope();
+                var repoSynchronizerService = scope.ServiceProvider.GetRequiredService<RepoSynchronizerService>();
+
+                await repoSynchronizerService.StartSync(task.Body);
+            }).GetAwaiter().GetResult();
+        })
+        .OnExecuted((info, log) =>
+        {
+            Log.Information("Task {Task} ({TaskId}) executed, IsSuccess: {Result}", info.Topic, info.Id,
+                log.Success);
+        })
+        .Build();
+});
 
 #endregion
 
@@ -170,7 +195,7 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
         return RateLimitPartition.GetFixedWindowLimiter(context.GetIpAddress(), _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = fileHostServiceOptions.RateLimitPerWindow,
-            Window =  TimeSpan.FromMilliseconds(fileHostServiceOptions.RateLimitWindow),
+            Window = TimeSpan.FromMilliseconds(fileHostServiceOptions.RateLimitWindow),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0
         });
