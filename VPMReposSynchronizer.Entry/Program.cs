@@ -194,15 +194,16 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v0/swagger.json", "VPMReposSynchronizer API v0");
-        options.DisplayRequestDuration();
-    });
     app.UseDeveloperExceptionPage();
     app.UseMigrationsEndPoint();
 }
+
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v0/swagger.json", "VPMReposSynchronizer API v0");
+    options.DisplayRequestDuration();
+});
 
 using (var scope = app.Services.CreateScope())
 {
