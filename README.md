@@ -8,6 +8,8 @@ Frontend: [vpm-repos-syncronizer-web](https://github.com/vrcd-community/vpm-repo
 
 ## Usage
 
+> This README file is outdated! I will write a new one in my free time.
+
 ### Dotnet
 
 > If you want to running it in a production environment, you need to setup a service or daemon.
