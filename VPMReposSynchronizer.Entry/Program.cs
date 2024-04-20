@@ -25,7 +25,12 @@ var builder = WebApplication.CreateBuilder(args);
 #region Logger
 
 const string logTemplate =
-    "[{@t:yyyy-MM-dd HH:mm:ss} {@l:u3}] [{Substring(SourceContext, LastIndexOf(SourceContext, '.') + 1)}] {@m}\n{@x}";
+    "[{@t:yyyy-MM-dd HH:mm:ss} " +
+    "{@l:u3}]" +
+    "{#if SourceContext is not null} [{Substring(SourceContext, LastIndexOf(SourceContext, '.') + 1)}]{#end}" +
+    "{#if @p.Scope is not null} [{#each s in Scope}{s}{#delimit} {#end}]{#end}" +
+    " {@m}" +
+    "\n{@x}";
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)

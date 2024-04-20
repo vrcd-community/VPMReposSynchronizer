@@ -34,18 +34,22 @@ public class RepoSynchronizerService(
 
         var taskId = await repoSyncTaskService.AddSyncTaskAsync(repoId, "");
 
-        try
+        using (logger.BeginScope("Sync with {RepoId}@{RepoUrl} Task Id: {TaskId}", repoId, repo.UpStreamUrl,
+                   taskId))
         {
-            await StartSync(repo.UpStreamUrl, repo.Id);
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Error while Syncing Repo {RepoId}", repoId);
-            await repoSyncTaskService.UpdateSyncTaskAsync(taskId, DateTimeOffset.Now, SyncTaskStatus.Failed);
-            return;
-        }
+            try
+            {
+                await StartSync(repo.UpStreamUrl, repo.Id);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error while Syncing Repo {RepoId}", repoId);
+                await repoSyncTaskService.UpdateSyncTaskAsync(taskId, DateTimeOffset.Now, SyncTaskStatus.Failed);
+                return;
+            }
 
-        await repoSyncTaskService.UpdateSyncTaskAsync(taskId, DateTimeOffset.Now, SyncTaskStatus.Completed);
+            await repoSyncTaskService.UpdateSyncTaskAsync(taskId, DateTimeOffset.Now, SyncTaskStatus.Completed);
+        }
     }
 
     public async Task StartSync(string sourceRepoUrl, string sourceRepoId)
