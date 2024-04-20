@@ -19,15 +19,7 @@ public class RepoBrowserService(
     {
         var repoEntities = await repoMetaDataService.GetAllRepos();
 
-        return repoEntities.Select(entity => new BrowserRepo(
-                ApiId: entity.Id,
-                Name: entity.Name,
-                UpstreamId: entity.RepoId,
-                UpstreamUrl: entity.UpStreamUrl,
-                Author: entity.Author,
-                RepoUrl: GetRepoUrl(entity.Id),
-                SyncStatus: new SyncStatusPublic(DateTimeOffset.Now, DateTimeOffset.Now, SyncStatusType.Syncing, "", "")))
-            .ToArray();
+        return mapper.Map<BrowserRepo[]>(repoEntities);
     }
 
     public async ValueTask<BrowserPackage[]?> GetAllPackagesAsync(string repoId)
@@ -71,14 +63,8 @@ public class RepoBrowserService(
         if (repoEntity is null)
             return null;
 
-        return new BrowserRepo(
-            ApiId: repoEntity.Id,
-            Name: repoEntity.Name,
-            UpstreamId: repoEntity.RepoId,
-            UpstreamUrl: repoEntity.UpStreamUrl,
-            Author: repoEntity.Author,
-            RepoUrl: GetRepoUrl(id),
-            SyncStatus: new SyncStatusPublic(DateTimeOffset.Now, DateTimeOffset.Now, SyncStatusType.Syncing, "", ""));
+        var browserRepo = mapper.Map<BrowserRepo?>(repoEntity);
+        return browserRepo;
     }
 
     public async ValueTask<BrowserPackage?> GetPackageAsync(string repoId, string packageName)
