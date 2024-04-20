@@ -25,3 +25,6 @@
 **/logs
 LICENSE.md
 README.md
+
+**/appsettings.json
+**/appsettings.Development.json
