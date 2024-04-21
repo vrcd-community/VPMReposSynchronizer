@@ -29,12 +29,12 @@ public class RepoAdminController(RepoMetaDataService repoMetaDataService, IMappe
 
         if (!Uri.TryCreate(repoEntity.UpStreamUrl, UriKind.Absolute, out _))
         {
-            throw new InvalidOperationException("Invalid url.");
+            return BadRequest("Invalid url.");
         }
 
         if (!CronExpression.TryParse(repoEntity.SyncTaskCron, out _))
         {
-            throw new InvalidOperationException("Invalid cron expression.");
+            return BadRequest("Invalid cron expression.");
         }
 
         await repoMetaDataService.AddRepoAsync(repoEntity);
@@ -57,12 +57,12 @@ public class RepoAdminController(RepoMetaDataService repoMetaDataService, IMappe
 
         if (!Uri.TryCreate(repoEntity.UpStreamUrl, UriKind.Absolute, out _))
         {
-            throw new InvalidOperationException("Invalid url.");
+            return BadRequest("Invalid url.");
         }
 
         if (!CronExpression.TryParse(repoEntity.SyncTaskCron, out _))
         {
-            throw new InvalidOperationException("Invalid cron expression.");
+            return BadRequest("Invalid cron expression.");
         }
 
         await repoMetaDataService.UpdateRepoAsync(repoEntity);
