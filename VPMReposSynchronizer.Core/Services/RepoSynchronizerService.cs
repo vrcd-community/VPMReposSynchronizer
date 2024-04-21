@@ -32,7 +32,9 @@ public class RepoSynchronizerService(
     {
         var repo = await repoMetaDataService.GetRepoById(repoId);
         if (repo is null)
+        {
             throw new InvalidOperationException($"Repo with id {repoId} not found");
+        }
 
         var taskId = await repoSyncTaskService.AddSyncTaskAsync(repoId, "");
 

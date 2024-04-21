@@ -61,7 +61,9 @@ public class RepoBrowserService(
         var repoEntity = await repoMetaDataService.GetRepoById(id);
 
         if (repoEntity is null)
+        {
             return null;
+        }
 
         var browserRepo = mapper.Map<BrowserRepo?>(repoEntity);
         return browserRepo;

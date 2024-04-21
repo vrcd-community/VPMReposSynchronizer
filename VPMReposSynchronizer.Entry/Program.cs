@@ -279,6 +279,8 @@ app.MapControllers();
 app.UseCors();
 
 if (fileHostServiceOptions.EnableRateLimit)
+{
     app.UseRateLimiter();
+}
 
 app.Run();

@@ -29,7 +29,9 @@ public class FileController(IFileHostService fileHostService) : ControllerBase
     public async Task<IActionResult> DownloadFile(string fileId)
     {
         if (!await fileHostService.IsFileExist(fileId))
+        {
             return NotFound();
+        }
 
         var fileUri = await fileHostService.GetFileUriAsync(fileId);
 

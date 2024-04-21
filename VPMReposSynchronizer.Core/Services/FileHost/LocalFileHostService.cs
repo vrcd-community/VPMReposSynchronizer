@@ -49,7 +49,9 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options, IOptio
         var filePath = GetFilePath(fileId);
 
         if (filePath is not null && File.Exists(filePath))
+        {
             return Task.FromResult(new Uri(fileHostOptions.Value.BaseUrl, filePath).ToString());
+        }
 
         var exception = new InvalidOperationException("File Id (File Path) Not found",
             new FileNotFoundException("File not found", filePath));
@@ -63,7 +65,18 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options, IOptio
     {
         var filePath = GetFilePath(hash);
 
-        return Task.FromResult(filePath is null ? null : File.Exists(filePath) ? hash : null);
+        if (filePath is null)
+        {
+            return Task.FromResult<string?>(null);
+        }
+
+        // ReSharper disable once ConvertIfStatementToReturnStatement
+        if (File.Exists(filePath))
+        {
+            return Task.FromResult<string?>(hash);
+        }
+
+        return Task.FromResult<string?>(null);
     }
 
     public Task<bool> IsFileExist(string fileId)
@@ -76,12 +89,13 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options, IOptio
     private string? GetFilePath(string hash)
     {
         var hashPath = Path.Combine(_filePath, hash);
-        if (!Directory.Exists(Path.Combine(_filePath, hash))) return null;
+        if (!Directory.Exists(Path.Combine(_filePath, hash)))
+        {
+            return null;
+        }
 
         var files = Directory.GetFiles(hashPath);
-        if (files.Length != 0)
-            return files[0];
 
-        return null;
+        return files.Length != 0 ? files[0] : null;
     }
 }

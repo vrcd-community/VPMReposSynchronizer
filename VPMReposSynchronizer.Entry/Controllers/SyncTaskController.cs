@@ -27,7 +27,9 @@ public class SyncTaskController(RepoSyncTaskService repoSyncTaskService, IMapper
         var syncTask = await repoSyncTaskService.GetSyncTaskAsync(id);
 
         if (syncTask is null)
+        {
             return NotFound();
+        }
 
         return Ok(mapper.Map<SyncTaskPublic>(syncTask));
     }
@@ -41,12 +43,16 @@ public class SyncTaskController(RepoSyncTaskService repoSyncTaskService, IMapper
         var syncTask = await repoSyncTaskService.GetSyncTaskAsync(id);
 
         if (syncTask is null)
+        {
             return NotFound();
+        }
 
         var logPath = syncTask.LogPath;
 
         if (!System.IO.File.Exists(logPath))
+        {
             return NotFound();
+        }
 
         return PhysicalFile(logPath, "text/plain");
     }

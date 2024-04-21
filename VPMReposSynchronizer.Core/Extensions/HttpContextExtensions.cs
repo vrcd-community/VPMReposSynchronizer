@@ -12,14 +12,13 @@ public static class HttpContextExtensions
         }
 
         var ipAddress = httpContext.Request.HttpContext.GetServerVariable("HTTP_X_FORWARDED_FOR");
+        var connectionIpAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-        if (!string.IsNullOrEmpty(ipAddress))
-        {
-            var addresses = ipAddress.Split(',');
-            if (addresses.Length != 0)
-                return addresses[^1];
-        }
+        if (string.IsNullOrEmpty(ipAddress))
+            return connectionIpAddress;
 
-        return httpContext.Connection.RemoteIpAddress.ToString();
+        var addresses = ipAddress.Split(',');
+
+        return addresses.Length != 0 ? addresses[^1] : connectionIpAddress;
     }
 }

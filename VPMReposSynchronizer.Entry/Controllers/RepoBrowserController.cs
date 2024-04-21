@@ -27,7 +27,9 @@ public class RepoBrowserController(RepoBrowserService repoBrowserService) : Cont
         var repo = await repoBrowserService.GetRepoAsync(id);
 
         if (repo is null)
+        {
             return NotFound();
+        }
 
         return Ok(repo);
     }
@@ -39,7 +41,9 @@ public class RepoBrowserController(RepoBrowserService repoBrowserService) : Cont
     public async Task<IActionResult> GetAllPackage(string repoId)
     {
         if (await repoBrowserService.GetRepoAsync(repoId) is null)
+        {
             return NotFound();
+        }
 
         var packages = await repoBrowserService.GetAllPackagesAsync(repoId);
 
@@ -54,7 +58,9 @@ public class RepoBrowserController(RepoBrowserService repoBrowserService) : Cont
     {
         var package = await repoBrowserService.GetPackageAsync(repoId, packageId);
         if (package == null)
+        {
             return NotFound();
+        }
 
         return Ok(package);
     }
