@@ -38,10 +38,6 @@ public class StatusController(RepoSyncTaskService repoSyncTaskService) : Control
     [ProducesResponseType<SyncStatusPublic[]>(StatusCodes.Status200OK)]
     public SyncStatusPublic[] SyncStatus()
     {
-        // return repoSynchronizerStatusService.SyncStatus
-        //     .Select(status => new SyncStatusPublic(status.Key, status.Value))
-        //     .ToArray();
-
         return [];
     }
 

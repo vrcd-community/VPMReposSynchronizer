@@ -15,7 +15,9 @@ public static class HttpContextExtensions
         var connectionIpAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
         if (string.IsNullOrEmpty(ipAddress))
+        {
             return connectionIpAddress;
+        }
 
         var addresses = ipAddress.Split(',');
 

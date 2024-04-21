@@ -6,15 +6,14 @@ namespace VPMReposSynchronizer.Core.Services;
 
 public class RepoSyncTaskService(DefaultDbContext defaultDbContext)
 {
-    public async ValueTask<long> AddSyncTaskAsync(string repoId, string logPath, DateTimeOffset? startTime = null,
-        DateTimeOffset? endTime = null, SyncTaskStatus status = SyncTaskStatus.Running)
+    public async ValueTask<long> AddSyncTaskAsync(string repoId, string logPath, SyncTaskStatus status = SyncTaskStatus.Running)
     {
         var syncTaskEntity = new SyncTaskEntity
         {
             RepoId = repoId,
             LogPath = logPath,
-            StartTime = startTime ?? DateTimeOffset.Now,
-            EndTime = endTime,
+            StartTime = DateTimeOffset.Now,
+            EndTime = null,
             Status = status
         };
 
