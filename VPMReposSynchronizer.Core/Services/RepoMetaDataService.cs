@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Cronos;
 using Microsoft.EntityFrameworkCore;
 using VPMReposSynchronizer.Core.DbContexts;
 using VPMReposSynchronizer.Core.Models.Entity;
@@ -6,8 +7,13 @@ using VPMReposSynchronizer.Core.Models.Types;
 
 namespace VPMReposSynchronizer.Core.Services;
 
-public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapper)
+public class RepoMetaDataService(
+    DefaultDbContext defaultDbContext,
+    RepoSyncTaskScheduleService repoSyncTaskScheduleService,
+    IMapper mapper)
 {
+    #region VpmPacakge
+
     public async Task AddVpmPackageAsync(VpmPackageEntity vpmPackageEntity)
     {
         defaultDbContext.Packages.Add(vpmPackageEntity);
@@ -47,68 +53,6 @@ public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapp
         await AddOrUpdateVpmPackageAsync(entity);
     }
 
-    public async Task AddRepoAsync(VpmRepoEntity vpmRepoEntity)
-    {
-        defaultDbContext.Repos.Add(vpmRepoEntity);
-        await defaultDbContext.SaveChangesAsync();
-    }
-
-    public async Task AddRepoAsync(VpmRepo vpmRepo, string configurationId)
-    {
-        var entity = mapper.Map<VpmRepoEntity>(vpmRepo);
-        entity.Id = configurationId;
-
-        defaultDbContext.Repos.Add(entity);
-        await defaultDbContext.SaveChangesAsync();
-    }
-
-    public async Task AddRepoAsync(VpmRepo vpmRepo, string configurationId, string upstreamUrl)
-    {
-        var entity = mapper.Map<VpmRepoEntity>(vpmRepo);
-        entity.Id = configurationId;
-        entity.UpStreamUrl = upstreamUrl;
-
-        defaultDbContext.Repos.Add(entity);
-        await defaultDbContext.SaveChangesAsync();
-    }
-
-    public async Task AddOrUpdateRepoAsync(VpmRepoEntity vpmRepoEntity)
-    {
-        if (await defaultDbContext.Repos.AnyAsync(package => package.RepoId == vpmRepoEntity.RepoId))
-        {
-            defaultDbContext.Repos.Update(vpmRepoEntity);
-        }
-        else
-        {
-            defaultDbContext.Repos.Add(vpmRepoEntity);
-        }
-
-        await defaultDbContext.SaveChangesAsync();
-    }
-
-    public async Task AddOrUpdateRepoAsync(VpmRepo vpmRepo, string configurationId, string upstreamUrl)
-    {
-        var entity = mapper.Map<VpmRepoEntity>(vpmRepo);
-
-        if (vpmRepo.Id is null)
-            entity.RepoId = configurationId;
-
-        entity.Id = configurationId;
-        entity.UpStreamUrl = upstreamUrl;
-
-        await AddOrUpdateRepoAsync(entity);
-    }
-
-    public async Task<VpmRepoEntity[]> GetAllRepos()
-    {
-        return await defaultDbContext.Repos.ToArrayAsync();
-    }
-
-    public async Task<VpmRepoEntity?> GetRepoById(string id)
-    {
-        return await defaultDbContext.Repos.FirstOrDefaultAsync(entity => entity.Id == id);
-    }
-
     public async Task<VpmPackageEntity[]> GetVpmPackages()
     {
         return await defaultDbContext.Packages.ToArrayAsync();
@@ -135,4 +79,55 @@ public class RepoMetaDataService(DefaultDbContext defaultDbContext, IMapper mapp
                 (package.Description != null && package.Description.Contains(keyword)))
             .ToArrayAsync();
     }
+
+    #endregion
+
+    #region VpmRepo
+
+    public async Task AddRepoAsync(VpmRepoEntity vpmRepoEntity)
+    {
+        defaultDbContext.Repos.Add(vpmRepoEntity);
+        await defaultDbContext.SaveChangesAsync();
+
+        await repoSyncTaskScheduleService.ScheduleAllTasks();
+    }
+
+    public async Task UpdateRepoAsync(VpmRepoEntity vpmRepoEntity)
+    {
+        defaultDbContext.Repos.Update(vpmRepoEntity);
+        await defaultDbContext.SaveChangesAsync();
+
+        await repoSyncTaskScheduleService.ScheduleAllTasks();
+    }
+
+    public async Task DeleteRepoAsync(string id)
+    {
+        var repo = await GetRepoById(id);
+        if (repo is null)
+        {
+            throw new InvalidOperationException("Repo not found.");
+        }
+
+        defaultDbContext.Repos.Remove(repo);
+        await defaultDbContext.SaveChangesAsync();
+
+        await repoSyncTaskScheduleService.ScheduleAllTasks();
+    }
+
+    public async Task<VpmRepoEntity[]> GetAllRepos()
+    {
+        return await defaultDbContext.Repos.ToArrayAsync();
+    }
+
+    public async Task<VpmRepoEntity?> GetRepoById(string id)
+    {
+        return await defaultDbContext.Repos.FindAsync(id);
+    }
+
+    public async Task<bool> IsRepoExist(string id)
+    {
+        return await defaultDbContext.Repos.AnyAsync(repo => repo.Id == id);
+    }
+
+    #endregion
 }

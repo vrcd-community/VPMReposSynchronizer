@@ -18,8 +18,7 @@ public class RepoSynchronizerService(
     RepoSyncTaskService repoSyncTaskService,
     IFileHostService fileHostService,
     ILogger<RepoSynchronizerService> logger,
-    IHttpClientFactory httpClientFactory,
-    Scheduler scheduler)
+    IHttpClientFactory httpClientFactory)
 {
     const string logTemplate =
         "[{@t:yyyy-MM-dd HH:mm:ss} " +
@@ -28,16 +27,6 @@ public class RepoSynchronizerService(
         "{#if @p.Scope is not null} [{#each s in Scope}{s}{#delimit} {#end}]{#end}" +
         " {@m}" +
         "\n{@x}";
-
-    public async Task ScheduleAllTasks()
-    {
-        var repos = await repoMetaDataService.GetAllRepos();
-
-        foreach (var repo in repos)
-        {
-            scheduler.AddTaskCustom("SyncRepo", repo.Id, repo.SyncTaskCron);
-        }
-    }
 
     public async Task StartSync(string repoId)
     {

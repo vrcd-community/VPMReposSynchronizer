@@ -137,6 +137,7 @@ builder.Services.AddTransient<RepoSynchronizerService>();
 builder.Services.AddTransient<RepoBrowserService>();
 builder.Services.AddTransient<RepoSyncTaskService>();
 builder.Services.AddHostedService<RepoSynchronizerHostService>();
+builder.Services.AddSingleton<RepoSyncTaskScheduleService>();
 builder.Services.AddSingleton(services =>
 {
     return new FreeSchedulerBuilder()
