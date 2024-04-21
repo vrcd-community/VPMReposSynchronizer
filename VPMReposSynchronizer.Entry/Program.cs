@@ -19,8 +19,12 @@ using VPMReposSynchronizer.Core.Models.Mappers;
 using VPMReposSynchronizer.Core.Options;
 using VPMReposSynchronizer.Core.Services;
 using VPMReposSynchronizer.Core.Services.FileHost;
+using VPMReposSynchronizer.Entry;
+using VPMReposSynchronizer.Entry.AuthenticationHandlers;
 
 var builder = WebApplication.CreateBuilder(args);
+
+#region Builder
 
 #region Logger
 
@@ -72,6 +76,15 @@ builder.Services.AddSwaggerGen(options =>
         },
     });
 
+    options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Name = "X-Api-Key",
+        Type = SecuritySchemeType.ApiKey
+    });
+
+    options.OperationFilter<SecurityRequirementsOperationFilter>();
+
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
@@ -83,6 +96,7 @@ builder.Services.AddSwaggerGen(options =>
 builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.Configure<MirrorRepoMetaDataOptions>(builder.Configuration.GetSection("MirrorRepoMetaData"));
+builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
 
 builder.Services.Configure<FileHostServiceOptions>(builder.Configuration.GetSection("FileHost"));
 builder.Services.Configure<LocalFileHostOptions>(builder.Configuration.GetSection("LocalFileHost"));
@@ -165,6 +179,8 @@ builder.Services.AddSingleton(services =>
 
 #endregion
 
+#region OpenTelemetry
+
 builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics => metrics
         .ConfigureResource(resource => resource.AddService(nameof(RepoSynchronizerService)))
@@ -174,12 +190,9 @@ builder.Services.AddOpenTelemetry()
         .AddRuntimeInstrumentation()
         .AddPrometheusExporter());
 
-builder.Services.AddControllers();
+#endregion
 
-builder.Services.AddOutputCache(options =>
-{
-    options.AddPolicy("vpm", policyBuilder => policyBuilder.Expire(TimeSpan.FromSeconds(10)));
-});
+#region RateLimiter
 
 builder.Services.AddRateLimiter(rateLimiterOptions =>
 {
@@ -208,6 +221,42 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
     });
 });
 
+#endregion
+
+#region Authentication
+
+var authOptions = builder.Configuration.GetSection("Auth").Get<AuthOptions>();
+
+if (authOptions is null)
+{
+    throw new InvalidOperationException("AuthOptions is not configured correctly");
+}
+
+builder.Services.AddAuthentication()
+    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>("ApiKey", options =>
+{
+    options.ApiKey = authOptions.ApiKey;
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("ApiKey", policy =>
+    {
+        policy.RequireClaim("ApiKey", authOptions.ApiKey);
+    });
+});
+
+#endregion
+
+#region Others
+
+builder.Services.AddControllers();
+
+builder.Services.AddOutputCache(options =>
+{
+    options.AddPolicy("vpm", policyBuilder => policyBuilder.Expire(TimeSpan.FromSeconds(10)));
+});
+
 builder.Services.AddHttpClient("default", client =>
 {
     client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("VPMReposSynchronizer",
@@ -219,6 +268,12 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
         policy.AllowAnyOrigin());
 });
+
+#endregion
+
+#endregion
+
+#region App
 
 var app = builder.Build();
 
@@ -276,6 +331,9 @@ app.UseHttpsRedirection();
 
 app.MapControllers();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseCors();
 
 if (fileHostServiceOptions.EnableRateLimit)
@@ -284,3 +342,5 @@ if (fileHostServiceOptions.EnableRateLimit)
 }
 
 app.Run();
+
+#endregion

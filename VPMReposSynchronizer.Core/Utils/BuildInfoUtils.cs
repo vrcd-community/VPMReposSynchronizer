@@ -4,7 +4,7 @@ using VPMReposSynchronizer.Core.Models.Types;
 
 namespace VPMReposSynchronizer.Core.Utils;
 
-public class BuildInfoUtils
+public static class BuildInfoUtils
 {
     public static BuildInfo GetBuildInfo()
     {
