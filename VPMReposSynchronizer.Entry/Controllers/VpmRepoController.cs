@@ -28,42 +28,6 @@ public class VpmRepoController(
     IMapper mapper) : ControllerBase
 {
     /// <summary>
-    /// Deprecated. Synchronizer now use separate endpoint for each upstream, Use /vpm/{repoId} instead.
-    /// </summary>
-    /// <returns>Deprecated Response</returns>
-    /// <remarks>
-    /// Sample Response:
-    ///
-    ///     {
-    ///       "name": "Synchronizer now use separate endpoint for each upstream , Use /vpm/{repoId} instead",
-    ///       "author": "Synchronizer now use separate endpoint for each upstream , Use /vpm/{repoId} instead",
-    ///       "url": "http://localhost:5218/",
-    ///       "id": "local.debug.vpm.repo",
-    ///       "packages": {}
-    ///     }
-    ///
-    /// </remarks>
-    /// <response code="200">Deprecated Response</response>
-    [HttpGet]
-    [ProducesResponseType<VpmRepo>(StatusCodes.Status200OK)]
-    [Obsolete("Synchronizer now use separate endpoint for each upstream, Use /vpm/{repoId} instead")]
-    public JsonResult Index()
-    {
-        var repo = new VpmRepo(
-            Name: "Synchronizer now use separate endpoint for each upstream , Use /vpm/{repoId} instead",
-            Author: "Synchronizer now use separate endpoint for each upstream , Use /vpm/{repoId} instead",
-            Url: options.Value.RepoUrl,
-            Id: options.Value.RepoId,
-            Packages: new Dictionary<string, VpmRepoPackageVersions>());
-
-        return new JsonResult(repo, new JsonSerializerOptions
-        {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
-    }
-
-    /// <summary>
     /// Get all upstream repos.
     /// </summary>
     /// <returns>All upstream repos</returns>
