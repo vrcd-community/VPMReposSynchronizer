@@ -8,9 +8,12 @@ public class SecurityRequirementsOperationFilter : IOperationFilter
 {
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
-        var requiredScopes = context.MethodInfo
-            .GetCustomAttributes(true)
-            .OfType<AuthorizeAttribute>()
+        var attributes = new List<AuthorizeAttribute>();
+
+        attributes.AddRange(context.MethodInfo.GetCustomAttributes(true).OfType<AuthorizeAttribute>());
+        attributes.AddRange(context.MethodInfo.DeclaringType?.GetCustomAttributes(true).OfType<AuthorizeAttribute>() ?? []);
+
+        var requiredScopes = attributes
             .Select(attr => attr.Policy)
             .Distinct()
             .ToArray();

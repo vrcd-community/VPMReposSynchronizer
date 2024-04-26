@@ -12,11 +12,13 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [Route("admin/repos")]
 [Produces("application/json")]
 [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
-public class RepoAdminController(RepoMetaDataService repoMetaDataService,RepoSyncTaskScheduleService repoSyncTaskScheduleService, IMapper mapper) : ControllerBase
+public class RepoAdminController(
+    RepoMetaDataService repoMetaDataService,
+    RepoSyncTaskScheduleService repoSyncTaskScheduleService,
+    IMapper mapper) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType<RepoAdmin[]>(StatusCodes.Status200OK)]
-    [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<RepoAdmin[]> Index()
     {
         var repos = await repoMetaDataService.GetAllRepos();
@@ -27,7 +29,6 @@ public class RepoAdminController(RepoMetaDataService repoMetaDataService,RepoSyn
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<IActionResult> Create(RepoAdmin repo)
     {
         var repoEntity = mapper.Map<VpmRepoEntity>(repo);
@@ -50,7 +51,6 @@ public class RepoAdminController(RepoMetaDataService repoMetaDataService,RepoSyn
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<IActionResult> Update(string id, RepoAdminUpdateDto repo)
     {
         if (!await repoMetaDataService.IsRepoExist(id))
@@ -79,7 +79,6 @@ public class RepoAdminController(RepoMetaDataService repoMetaDataService,RepoSyn
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<IActionResult> Delete(string id)
     {
         if (!await repoMetaDataService.IsRepoExist(id))
@@ -95,7 +94,6 @@ public class RepoAdminController(RepoMetaDataService repoMetaDataService,RepoSyn
     [HttpGet("{id}")]
     [ProducesResponseType<RepoAdmin>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<IActionResult> Get(string id)
     {
         var repo = await repoMetaDataService.GetRepoById(id);
@@ -111,7 +109,6 @@ public class RepoAdminController(RepoMetaDataService repoMetaDataService,RepoSyn
     [HttpPost("{id}/sync")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<IActionResult> Sync(string id)
     {
         if (!await repoMetaDataService.IsRepoExist(id))
