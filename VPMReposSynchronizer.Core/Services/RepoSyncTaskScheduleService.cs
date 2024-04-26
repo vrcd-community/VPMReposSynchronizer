@@ -36,4 +36,14 @@ public class RepoSyncTaskScheduleService(
 
         logger.LogInformation("All tasks scheduled");
     }
+
+    public async void InvokeSyncTask(string repoId)
+    {
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
+        var repoSynchronizerService = scope.ServiceProvider.GetRequiredService<RepoSynchronizerService>();
+
+        logger.LogInformation("Invoking sync task for repo {RepoId}", repoId);
+        await repoSynchronizerService.StartSync(repoId);
+        logger.LogInformation("Sync task for repo {RepoId} invoked", repoId);
+    }
 }

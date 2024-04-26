@@ -12,7 +12,7 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [Route("admin/repos")]
 [Produces("application/json")]
 [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
-public class RepoAdminController(RepoMetaDataService repoMetaDataService, IMapper mapper) : ControllerBase
+public class RepoAdminController(RepoMetaDataService repoMetaDataService,RepoSyncTaskScheduleService repoSyncTaskScheduleService, IMapper mapper) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType<RepoAdmin[]>(StatusCodes.Status200OK)]
@@ -112,8 +112,14 @@ public class RepoAdminController(RepoMetaDataService repoMetaDataService, IMappe
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
-    public IActionResult Sync(string id)
+    public async Task<IActionResult> Sync(string id)
     {
+        if (!await repoMetaDataService.IsRepoExist(id))
+        {
+            return NotFound();
+        }
+
+        repoSyncTaskScheduleService.InvokeSyncTask(id);
         return NoContent();
     }
 }
