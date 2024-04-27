@@ -18,8 +18,8 @@ public class FileController(IFileHostService fileHostService) : ControllerBase
     /// <response code="404">Request file doesn't exist</response>
     /// <response code="429">Send too many request in a time</response>
     /// <response code="403">You have been banned</response>
-    [Route("download")]
-    [Route("download/{fileName}")]
+    [Route("{fileId}/download/{fileName}")]
+    [Route("{fileId}/download")]
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status302Found)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
