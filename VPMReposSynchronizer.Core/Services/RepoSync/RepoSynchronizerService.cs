@@ -17,7 +17,7 @@ public class RepoSynchronizerService(
     RepoSyncTaskService repoSyncTaskService,
     IFileHostService fileHostService,
     ILogger<RepoSynchronizerService> logger,
-    IHttpClientFactory httpClientFactory)
+    HttpClient httpClient)
 {
     const string logTemplate =
         "[{@t:yyyy-MM-dd HH:mm:ss} " +
@@ -39,13 +39,7 @@ public class RepoSynchronizerService(
 
         var logPath = Path.GetFullPath(Path.Combine("sync-tasks-logs",
             $"syncTask-{taskId}-{repoId}-{DateTimeOffset.Now:yyyy-MM-dd-HH-mm-ss}.log"));
-        var rawTaskLogger = new LoggerConfiguration()
-            .WriteTo.ILogger(logger)
-            .WriteTo.File(new ExpressionTemplate(logTemplate), logPath,
-                rollingInterval: RollingInterval.Infinite)
-            .CreateLogger().ForContext<RepoSynchronizerService>();
-
-        var taskLogger = new SerilogLoggerFactory(rawTaskLogger).CreateLogger<RepoSynchronizerService>();
+        var taskLogger = GetTaskLogger(logger, logPath);
 
         await repoSyncTaskService.UpdateSyncTaskAsync(taskId, logPath);
 
@@ -71,8 +65,41 @@ public class RepoSynchronizerService(
     {
         taskLogger.LogInformation("Start Sync with: {SourceRepoId}@{RepoUrl}", sourceRepoId, sourceRepoUrl);
 
-        using var httpClient = httpClientFactory.CreateClient("default");
+        // Fetch Repo MetaData
+        var repo = await FetchRepoAsync(sourceRepoUrl);
 
+        // Count Packages
+        var packagesCount = repo.Packages
+            .SelectMany(package =>
+                package.Value.Versions.Select(version => version.Value))
+            .Count();
+        taskLogger.LogInformation("Found {PackageCount} Packages", packagesCount);
+
+        // Sync Packages
+        foreach (var package in repo.Packages.SelectMany(
+                     package => package.Value.Versions.Select(version => version.Value)))
+        {
+            var fileId = await ProcessPackageFileAsync(package, sourceRepoId, taskLogger);
+
+            await repoMetaDataService.AddOrUpdateVpmPackageAsync(package, fileId, sourceRepoId,
+                repo.Id ?? sourceRepoId);
+            taskLogger.LogInformation("Add {PackageName}@{PackageVersion} to DataBase", package.Name, package.Version);
+        }
+    }
+
+    private ILogger<RepoSynchronizerService> GetTaskLogger(ILogger parentLogger, string logPath)
+    {
+        var rawTaskLogger = new LoggerConfiguration()
+            .WriteTo.ILogger(parentLogger)
+            .WriteTo.File(new ExpressionTemplate(logTemplate), logPath,
+                rollingInterval: RollingInterval.Infinite)
+            .CreateLogger().ForContext<RepoSynchronizerService>();
+
+        return new SerilogLoggerFactory(rawTaskLogger).CreateLogger<RepoSynchronizerService>();
+    }
+
+    private async ValueTask<VpmRepo> FetchRepoAsync(string sourceRepoUrl)
+    {
         var repoResponse = await httpClient.GetStringAsync(sourceRepoUrl);
         var repo = JsonSerializer.Deserialize<VpmRepo>(repoResponse, new JsonSerializerOptions
         {
@@ -84,88 +111,116 @@ public class RepoSynchronizerService(
             throw new InvalidOperationException("Deserialize Repo Response is not valid");
         }
 
-        taskLogger.LogInformation("Found {PackageCount} Packages",
-            repo.Packages.SelectMany(package => package.Value.Versions.Select(version => version.Value)).Count());
+        return repo;
+    }
 
-        foreach (var package in repo.Packages.SelectMany(
-                     package => package.Value.Versions.Select(version => version.Value)))
+    private async ValueTask<string> ProcessPackageFileAsync(VpmPackage package, string sourceRepoId, ILogger taskLogger)
+    {
+        var sha256 = package.ZipSha256;
+        var fileName = $"{package.Name}@{package.Version}@{sourceRepoId}.zip";
+
+        if (sha256 is null)
         {
-            if (package.ZipSha256 is null &&
-                await repoMetaDataService.GetVpmPackage(package.Name, package.Version) is { } packageEntity)
-            {
-                taskLogger.LogWarning(
-                    "Package {PackageName}@{PackageVersion}@{SourceRepoId} have not ZipSha256 and the package is already downloaded & uploaded before, so we skip download this package",
-                    package.Name,
-                    package.Version,
-                    sourceRepoId);
-
-                await repoMetaDataService.AddOrUpdateVpmPackageAsync(package, packageEntity.FileId, sourceRepoId,
-                    repo.Id ?? sourceRepoId);
-                taskLogger.LogInformation("Add {PackageName}@{PackageVersion} to DataBase", package.Name,
-                    package.Version);
-
-                continue;
-            }
-
-            var fileId = "";
-            if (package.ZipSha256 is { } sha256 && await fileHostService.LookupFileByHashAsync(sha256) is
-                    { } tempFileId)
-            {
-                taskLogger.LogInformation(
-                    "File is already Downloaded & Uploaded, Skip Download {PackageName}@{PackageVersion}@{SourceRepoId}",
-                    package.Name,
-                    package.Version,
-                    sourceRepoId);
-                fileId = tempFileId;
-            }
-
-            if (fileId == "")
-            {
-                taskLogger.LogInformation(
-                    "Start Downloading {PackageName}@{PackageVersion}@{SourceRepoId}: {PackageUrl}",
-                    package.Name,
-                    package.Version, sourceRepoId, package.Url);
-
-                var tempFileName = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-                await using var stream = await httpClient.GetStreamAsync(package.Url);
-                await using var tempFileStream = File.Create(tempFileName);
-                await stream.CopyToAsync(tempFileStream);
-
-                tempFileStream.Close();
-
-                taskLogger.LogInformation("Downloaded {PackageName}@{PackageVersion}@{SourceRepoId}", package.Name,
-                    package.Version, sourceRepoId);
-
-                var fileHash = await FileUtils.HashFile(tempFileName);
-                if (await fileHostService.LookupFileByHashAsync(fileHash) is not { } fileRecordId)
-                {
-                    taskLogger.LogInformation(
-                        "Uploading {PackageName}@{PackageVersion}@{SourceRepoId} to File Host Service", package.Name,
-                        package.Version, sourceRepoId);
-                    var fileName = Path.GetFileName(new Uri(package.Url).AbsolutePath);
-                    fileId = await fileHostService.UploadFileAsync(tempFileName, fileName);
-                    taskLogger.LogInformation(
-                        "Uploaded {PackageName}@{PackageVersion}@{SourceRepoId} to File Host Service",
-                        package.Name,
-                        package.Version, sourceRepoId);
-                }
-                else
-                {
-                    taskLogger.LogInformation(
-                        "File is already Uploaded, Skip Upload {PackageName}@{PackageVersion}@{SourceRepoId}",
-                        package.Name,
-                        package.Version,
-                        sourceRepoId);
-
-                    fileId = fileRecordId;
-                }
-
-                File.Delete(tempFileName);
-            }
-
-            await repoMetaDataService.AddOrUpdateVpmPackageAsync(package, fileId, sourceRepoId,
-                repo.Id ?? sourceRepoId);
-            taskLogger.LogInformation("Add {PackageName}@{PackageVersion} to DataBase", package.Name, package.Version);
+            taskLogger.LogWarning(
+                "Package {PackageName}@{PackageVersion} have not ZipSha256, we will download it anyway if it's not downloaded before",
+                package.Name, package.Version);
         }
+
+        if (await repoMetaDataService.GetVpmPackage(package.Name, package.Version) is not { } packageEntity)
+        {
+            if (sha256 is null || await fileHostService.LookupFileByHashAsync(sha256) is not { } fileId)
+            {
+                return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger);
+            }
+
+            taskLogger.LogInformation(
+                "File with same ZipSha256 is already Downloaded & Uploaded, Skip Download {PackageName}@{PackageVersion}",
+                package.Name,
+                package.Version);
+
+            return fileId;
+        }
+
+        if (!await fileHostService.IsFileExist(packageEntity.FileId))
+        {
+            taskLogger.LogWarning(
+                "Package {PackageName}@{PackageVersion} have not ZipSha256, although the package already have a fileId ({OriginFileId}), " +
+                "but the file id is not exist in File Host Service, " +
+                "so we will download it anyway",
+                package.Name, package.Version, packageEntity.FileId);
+
+            taskLogger.LogInformation(
+                "Start Downloading {PackageName}@{PackageVersion}@{SourceRepoId}: {PackageUrl}",
+                package.Name,
+                package.Version, sourceRepoId, package.Url);
+
+            return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger);
+        }
+
+        if (sha256 is null)
+        {
+            taskLogger.LogInformation(
+                "We found the package file is already Downloaded & Uploaded and the package have not ZipSha256, so we Skip Download {PackageName}@{PackageVersion}",
+                package.Name,
+                package.Version);
+
+            return packageEntity.FileId;
+        }
+
+        if (sha256 == packageEntity.ZipSha256)
+        {
+            taskLogger.LogInformation(
+                "We found the package file is already Downloaded & Uploaded and the package have the same ZipSha256, so we Skip Download {PackageName}@{PackageVersion}",
+                package.Name,
+                package.Version);
+
+            return packageEntity.FileId;
+        }
+
+        if (packageEntity.ZipSha256 != sha256)
+        {
+            taskLogger.LogWarning(
+                "Package {PackageName}@{PackageVersion} have different ZipSha256 compare with exist package MeatData, " +
+                "we will overwrite the exist one with remote one, Exist: {ExistSha256}, Remote: {RemoteSha256}",
+                package.Name, package.Version, packageEntity.ZipSha256, package.ZipSha256);
+        }
+
+        taskLogger.LogInformation(
+            "Start Downloading {PackageName}@{PackageVersion}@{SourceRepoId}: {PackageUrl}",
+            package.Name,
+            package.Version, sourceRepoId, package.Url);
+
+        return await DownloadAndUploadFileAsync(package.Url, fileName,
+            taskLogger);
+    }
+
+    private async ValueTask<string> DownloadAndUploadFileAsync(string url, string fileName, ILogger taskLogger)
+    {
+        var tempFileName = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        await using var stream = await httpClient.GetStreamAsync(url);
+        await using var tempFileStream = File.Create(tempFileName);
+        await stream.CopyToAsync(tempFileStream);
+
+        tempFileStream.Close();
+
+        taskLogger.LogInformation("Downloaded {FileName} From {Url}", fileName, url);
+
+        var fileHash = await FileUtils.HashFile(tempFileName);
+        if (await fileHostService.LookupFileByHashAsync(fileHash) is not { } fileRecordId)
+        {
+            taskLogger.LogInformation(
+                "Uploading {FileName} to File Host Service", fileName);
+            var fileId = await fileHostService.UploadFileAsync(tempFileName, fileName);
+            taskLogger.LogInformation("Uploaded {FileName} to File Host Service", fileName);
+
+            return fileId;
+        }
+
+        taskLogger.LogInformation(
+            "File is already Uploaded, Skip Upload {FileName}", fileName);
+
+        File.Delete(tempFileName);
+
+        return fileRecordId;
     }
 }

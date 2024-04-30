@@ -258,16 +258,27 @@ builder.Services.AddOutputCache(options =>
     options.AddPolicy("vpm", policyBuilder => policyBuilder.Expire(TimeSpan.FromSeconds(10)));
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin());
+});
+
+#endregion
+
+
+#region HttpClient
+
 builder.Services.AddHttpClient("default", client =>
 {
     client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("VPMReposSynchronizer",
         Assembly.GetExecutingAssembly().GetName().Version?.ToString()));
 });
 
-builder.Services.AddCors(options =>
+builder.Services.AddHttpClient<RepoSynchronizerService>(client =>
 {
-    options.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin());
+    client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("VPMReposSynchronizer",
+        Assembly.GetExecutingAssembly().GetName().Version?.ToString()));
 });
 
 #endregion
