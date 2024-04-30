@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Extensions.Logging;
@@ -48,6 +49,8 @@ public class RepoSynchronizerService(
         using (taskLogger.BeginScope("Sync with {RepoId}@{RepoUrl} Task Id: {TaskId}", repoId, repo.UpStreamUrl,
                    taskId))
         {
+            var stopWatch = Stopwatch.StartNew();
+
             await using var transaction = await defaultDbContext.Database.BeginTransactionAsync();
 
             try
@@ -63,6 +66,11 @@ public class RepoSynchronizerService(
 
                 await repoSyncTaskService.UpdateSyncTaskAsync(taskId, DateTimeOffset.Now, SyncTaskStatus.Failed);
                 return;
+            }
+            finally
+            {
+                stopWatch.Stop();
+                taskLogger.LogInformation("Sync Task Finish in {Elapsed}", stopWatch.Elapsed);
             }
 
             await repoSyncTaskService.UpdateSyncTaskAsync(taskId, DateTimeOffset.Now, SyncTaskStatus.Completed);
