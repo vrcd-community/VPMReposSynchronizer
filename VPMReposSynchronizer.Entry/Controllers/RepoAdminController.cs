@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types.RepoAdmin;
 using VPMReposSynchronizer.Core.Services;
+using VPMReposSynchronizer.Core.Services.RepoSync;
 
 namespace VPMReposSynchronizer.Entry.Controllers;
 

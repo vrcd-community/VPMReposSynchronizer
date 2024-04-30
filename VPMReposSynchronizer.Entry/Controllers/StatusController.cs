@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Services;
+using VPMReposSynchronizer.Core.Services.RepoSync;
 using VPMReposSynchronizer.Core.Utils;
 
 namespace VPMReposSynchronizer.Entry.Controllers;

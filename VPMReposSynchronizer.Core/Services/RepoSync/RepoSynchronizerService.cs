@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-using FreeScheduler;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Extensions.Logging;
@@ -11,7 +10,7 @@ using VPMReposSynchronizer.Core.Services.FileHost;
 using VPMReposSynchronizer.Core.Utils;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace VPMReposSynchronizer.Core.Services;
+namespace VPMReposSynchronizer.Core.Services.RepoSync;
 
 public class RepoSynchronizerService(
     RepoMetaDataService repoMetaDataService,

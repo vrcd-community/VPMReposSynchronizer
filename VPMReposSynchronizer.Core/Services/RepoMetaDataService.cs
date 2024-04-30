@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using VPMReposSynchronizer.Core.DbContexts;
 using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types;
+using VPMReposSynchronizer.Core.Services.RepoSync;
 
 namespace VPMReposSynchronizer.Core.Services;
 

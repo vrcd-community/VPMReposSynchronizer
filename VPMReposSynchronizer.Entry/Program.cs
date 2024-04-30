@@ -19,6 +19,7 @@ using VPMReposSynchronizer.Core.Models.Mappers;
 using VPMReposSynchronizer.Core.Options;
 using VPMReposSynchronizer.Core.Services;
 using VPMReposSynchronizer.Core.Services.FileHost;
+using VPMReposSynchronizer.Core.Services.RepoSync;
 using VPMReposSynchronizer.Entry;
 using VPMReposSynchronizer.Entry.AuthenticationHandlers;
 

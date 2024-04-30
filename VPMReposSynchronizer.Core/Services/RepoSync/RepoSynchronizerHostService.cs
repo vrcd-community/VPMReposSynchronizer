@@ -1,9 +1,7 @@
 ﻿using FreeScheduler;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
-namespace VPMReposSynchronizer.Core.Services;
+namespace VPMReposSynchronizer.Core.Services.RepoSync;
 
 public class RepoSynchronizerHostService(
     RepoSyncTaskScheduleService repoSyncTaskScheduleService,

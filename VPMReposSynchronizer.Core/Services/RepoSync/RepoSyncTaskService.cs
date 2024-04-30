@@ -2,7 +2,7 @@
 using VPMReposSynchronizer.Core.DbContexts;
 using VPMReposSynchronizer.Core.Models.Entity;
 
-namespace VPMReposSynchronizer.Core.Services;
+namespace VPMReposSynchronizer.Core.Services.RepoSync;
 
 public class RepoSyncTaskService(DefaultDbContext defaultDbContext)
 {
