@@ -4,6 +4,7 @@ using Serilog;
 using Serilog.Extensions.Logging;
 using Serilog.Sinks.ILogger;
 using Serilog.Templates;
+using VPMReposSynchronizer.Core.DbContexts;
 using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Services.FileHost;
@@ -17,7 +18,8 @@ public class RepoSynchronizerService(
     RepoSyncTaskService repoSyncTaskService,
     IFileHostService fileHostService,
     ILogger<RepoSynchronizerService> logger,
-    HttpClient httpClient)
+    HttpClient httpClient,
+    DefaultDbContext defaultDbContext)
 {
     const string logTemplate =
         "[{@t:yyyy-MM-dd HH:mm:ss} " +
@@ -46,13 +48,19 @@ public class RepoSynchronizerService(
         using (taskLogger.BeginScope("Sync with {RepoId}@{RepoUrl} Task Id: {TaskId}", repoId, repo.UpStreamUrl,
                    taskId))
         {
+            await using var transaction = await defaultDbContext.Database.BeginTransactionAsync();
+
             try
             {
-                await StartSync(repo.UpStreamUrl, repo.Id, taskLogger);
+                await StartSyncInternal(repo.UpStreamUrl, repo.Id, taskLogger);
+
+                await transaction.CommitAsync();
             }
             catch (Exception e)
             {
                 taskLogger.LogError(e, "Error while Syncing Repo {RepoId}", repoId);
+                await transaction.RollbackAsync();
+
                 await repoSyncTaskService.UpdateSyncTaskAsync(taskId, DateTimeOffset.Now, SyncTaskStatus.Failed);
                 return;
             }
@@ -61,7 +69,7 @@ public class RepoSynchronizerService(
         }
     }
 
-    public async Task StartSync(string sourceRepoUrl, string sourceRepoId, ILogger taskLogger)
+    private async Task StartSyncInternal(string sourceRepoUrl, string sourceRepoId, ILogger taskLogger)
     {
         taskLogger.LogInformation("Start Sync with: {SourceRepoId}@{RepoUrl}", sourceRepoId, sourceRepoUrl);
 
@@ -81,10 +89,12 @@ public class RepoSynchronizerService(
         {
             var fileId = await ProcessPackageFileAsync(package, sourceRepoId, taskLogger);
 
-            await repoMetaDataService.AddOrUpdateVpmPackageAsync(package, fileId, sourceRepoId,
+            await repoMetaDataService.MarkAddOrUpdateVpmPackageAsync(package, fileId, sourceRepoId,
                 repo.Id ?? sourceRepoId);
             taskLogger.LogInformation("Add {PackageName}@{PackageVersion} to DataBase", package.Name, package.Version);
         }
+
+        await defaultDbContext.SaveChangesAsync();
     }
 
     private ILogger<RepoSynchronizerService> GetTaskLogger(ILogger parentLogger, string logPath)

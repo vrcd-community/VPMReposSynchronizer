@@ -29,7 +29,7 @@ public class RepoMetaDataService(
         await AddVpmPackageAsync(entity);
     }
 
-    public async Task AddOrUpdateVpmPackageAsync(VpmPackageEntity vpmPackageEntity)
+    public async Task MarkAddOrUpdateVpmPackageAsync(VpmPackageEntity vpmPackageEntity)
     {
         if (await defaultDbContext.Packages.AnyAsync(package => package.PackageId == vpmPackageEntity.PackageId))
         {
@@ -39,11 +39,9 @@ public class RepoMetaDataService(
         {
             defaultDbContext.Packages.Add(vpmPackageEntity);
         }
-
-        await defaultDbContext.SaveChangesAsync();
     }
 
-    public async Task AddOrUpdateVpmPackageAsync(VpmPackage vpmPackage, string fileId, string repoId,
+    public async Task MarkAddOrUpdateVpmPackageAsync(VpmPackage vpmPackage, string fileId, string repoId,
         string originRepoId)
     {
         var entity = mapper.Map<VpmPackageEntity>(vpmPackage);
@@ -51,7 +49,7 @@ public class RepoMetaDataService(
         entity.UpstreamId = repoId;
         entity.UpstreamOriginId = originRepoId;
 
-        await AddOrUpdateVpmPackageAsync(entity);
+        await MarkAddOrUpdateVpmPackageAsync(entity);
     }
 
     public async Task<VpmPackageEntity[]> GetVpmPackages()
