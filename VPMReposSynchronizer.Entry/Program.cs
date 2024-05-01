@@ -32,7 +32,7 @@ var builder = WebApplication.CreateBuilder(args);
 const string logTemplate =
     "[{@t:yyyy-MM-dd HH:mm:ss} " +
     "{@l:u3}]" +
-    "{#if SourceContext is not null} [{Substring(SourceContext, LastIndexOf(SourceContext, '.') + 1)}]{#end}" +
+    "{#if SourceContext is not null} [{SourceContext}]{#end}" +
     "{#if @p.Scope is not null} [{#each s in Scope}{s}{#delimit} {#end}]{#end}" +
     " {@m}" +
     "\n{@x}";
