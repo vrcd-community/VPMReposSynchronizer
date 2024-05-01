@@ -148,7 +148,7 @@ public class RepoSynchronizerService(
         {
             if (sha256 is null || await fileHostService.LookupFileByHashAsync(sha256) is not { } fileId)
             {
-                return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger);
+                return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger, sha256);
             }
 
             taskLogger.LogInformation(
@@ -172,7 +172,7 @@ public class RepoSynchronizerService(
                 package.Name,
                 package.Version, sourceRepoId, package.Url);
 
-            return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger);
+            return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger, sha256);
         }
 
         if (sha256 is null)
@@ -209,10 +209,11 @@ public class RepoSynchronizerService(
             package.Version, sourceRepoId, package.Url);
 
         return await DownloadAndUploadFileAsync(package.Url, fileName,
-            taskLogger);
+            taskLogger, sha256);
     }
 
-    private async ValueTask<string> DownloadAndUploadFileAsync(string url, string fileName, ILogger taskLogger)
+    private async ValueTask<string> DownloadAndUploadFileAsync(string url, string fileName, ILogger taskLogger,
+        string? hash)
     {
         var tempFileName = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         await using var stream = await httpClient.GetStreamAsync(url);
@@ -224,6 +225,27 @@ public class RepoSynchronizerService(
         taskLogger.LogInformation("Downloaded {FileName} From {Url}", fileName, url);
 
         var fileHash = await FileUtils.HashFile(tempFileName);
+
+        taskLogger.LogInformation("Downloaded {FileName} Hash: {FileHash}", fileName, fileHash);
+        if (hash is not null)
+        {
+            if (fileHash != hash)
+            {
+                taskLogger.LogError(
+                    "Downloaded File Hash is not match with Provided Hash, the file may be corrupted, Expected: {ExpectedHash}, Actual: {ActualHash}",
+                    hash, fileHash);
+
+                File.Delete(tempFileName);
+                throw new InvalidOperationException("Downloaded File Hash is not match with Provided Hash");
+            }
+
+            taskLogger.LogInformation("Downloaded File Hash Match with Provided Hash, Continue Upload");
+        }
+        else
+        {
+            taskLogger.LogInformation("No Hash Provided, Skip Hash Check");
+        }
+
         if (await fileHostService.LookupFileByHashAsync(fileHash) is not { } fileRecordId)
         {
             taskLogger.LogInformation(
