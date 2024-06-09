@@ -10,5 +10,5 @@ public class BrowserRepo
     public string ApiId { get; set; }
     public string Description { get; set; }
     public string SyncTaskCron { get; set; }
-    public SyncStatusPublic SyncStatus { get; set; }
+    public SyncStatusPublic? SyncStatus { get; set; }
 }

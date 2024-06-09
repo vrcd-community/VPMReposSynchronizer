@@ -6,11 +6,13 @@ using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Models.Types.RepoBrowser;
 using VPMReposSynchronizer.Core.Options;
+using VPMReposSynchronizer.Core.Services.RepoSync;
 
 namespace VPMReposSynchronizer.Core.Services;
 
 public class RepoBrowserService(
     RepoMetaDataService repoMetaDataService,
+    RepoSyncStatusService repoSyncStatusService,
     IOptions<MirrorRepoMetaDataOptions> options,
     IOptions<FileHostServiceOptions> fileHostOptions,
     IMapper mapper)
@@ -18,8 +20,17 @@ public class RepoBrowserService(
     public async ValueTask<BrowserRepo[]> GetAllReposAsync()
     {
         var repoEntities = await repoMetaDataService.GetAllRepos();
+        var repoSyncStatuses = (await repoSyncStatusService.GetAllSyncStatusAsync())
+            .ToDictionary(status => status.RepoId, status => status);
 
-        return mapper.Map<BrowserRepo[]>(repoEntities);
+        var browserRepos = mapper.Map<BrowserRepo[]>(repoEntities);
+        foreach (var browserRepo in browserRepos)
+        {
+            browserRepo.SyncStatus = repoSyncStatuses[browserRepo.ApiId];
+            browserRepo.RepoUrl = GetRepoUrl(browserRepo.UpstreamId);
+        }
+
+        return browserRepos;
     }
 
     public async ValueTask<BrowserPackage[]?> GetAllPackagesAsync(string repoId)
@@ -65,7 +76,13 @@ public class RepoBrowserService(
             return null;
         }
 
-        var browserRepo = mapper.Map<BrowserRepo?>(repoEntity);
+        var syncStatus = await repoSyncStatusService.GetSyncStatusAsync(id);
+
+        var browserRepo = mapper.Map<BrowserRepo>(repoEntity);
+
+        browserRepo.SyncStatus = syncStatus;
+        browserRepo.RepoUrl = GetRepoUrl(id);
+
         return browserRepo;
     }
 

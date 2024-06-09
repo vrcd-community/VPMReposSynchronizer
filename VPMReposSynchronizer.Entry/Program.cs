@@ -149,6 +149,8 @@ builder.Services.AddTransient<RepoMetaDataService>();
 builder.Services.AddTransient<RepoSynchronizerService>();
 builder.Services.AddTransient<RepoBrowserService>();
 builder.Services.AddTransient<RepoSyncTaskService>();
+builder.Services.AddTransient<RepoSyncStatusService>();
+
 builder.Services.AddHostedService<RepoSynchronizerHostService>();
 builder.Services.AddSingleton<RepoSyncTaskScheduleService>();
 builder.Services.AddSingleton(services =>

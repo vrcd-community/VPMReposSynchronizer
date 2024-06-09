@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Services;
-using VPMReposSynchronizer.Core.Services.RepoSync;
 using VPMReposSynchronizer.Core.Utils;
 
 namespace VPMReposSynchronizer.Entry.Controllers;
@@ -12,7 +11,7 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [ApiController]
 [Route("status")]
 [Produces("application/json")]
-public class StatusController(RepoSyncTaskService repoSyncTaskService) : ControllerBase
+public class StatusController(RepoSyncStatusService repoSyncStatusService) : ControllerBase
 {
     /// <summary>
     /// Get sync status.
@@ -37,9 +36,9 @@ public class StatusController(RepoSyncTaskService repoSyncTaskService) : Control
     [Route("sync")]
     [HttpGet]
     [ProducesResponseType<SyncStatusPublic[]>(StatusCodes.Status200OK)]
-    public SyncStatusPublic[] SyncStatus()
+    public async Task<SyncStatusPublic[]> SyncStatus()
     {
-        return [];
+        return await repoSyncStatusService.GetAllSyncStatusAsync();
     }
 
     /// <summary>

@@ -67,4 +67,20 @@ public class RepoSyncTaskService(DefaultDbContext defaultDbContext)
     {
         return await defaultDbContext.SyncTasks.FindAsync(id);
     }
+
+    public async ValueTask<SyncTaskEntity[]> GetAllLatestSyncTasksAsync()
+    {
+        return await defaultDbContext.SyncTasks
+            .GroupBy(task => task.RepoId)
+            .Select(tasks => tasks.OrderByDescending(task => task.Id).First())
+            .ToArrayAsync();
+    }
+
+    public async ValueTask<SyncTaskEntity?> GetLatestSyncTaskAsync(string repoId)
+    {
+        return await defaultDbContext.SyncTasks
+            .Where(task => task.RepoId == repoId)
+            .OrderByDescending(task => task.Id)
+            .FirstOrDefaultAsync();
+    }
 }
