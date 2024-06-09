@@ -3,8 +3,6 @@ using System.Net.Http.Headers;
 using System.Reflection;
 using System.Threading.RateLimiting;
 using Cronos;
-using FreeScheduler;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
@@ -352,6 +350,30 @@ if (fileHostServiceOptions.EnableRateLimit)
 {
     app.UseRateLimiter();
 }
+
+app.MapGet("/api-docs", () => Results.Content(
+    $$"""
+      <!doctype html>
+      <html>
+      <head>
+          <title>Scalar API Reference</title>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
+      <body>
+          <script id="api-reference" data-url="/swagger/v0/swagger.json"></script>
+          <script>
+          var configuration = {}
+      
+          document.getElementById('api-reference').dataset.configuration =
+              JSON.stringify(configuration)
+          </script>
+          <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+      </body>
+      </html>
+      """,
+    "text/html"
+));
 
 app.Run();
 

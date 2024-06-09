@@ -47,13 +47,14 @@ public class StatusController(RepoSyncTaskService repoSyncTaskService) : Control
     /// </summary>
     /// <remarks>
     /// Sample Response:
-    /// {
-    ///     "version": "0.10.0.0",
-    ///     "architecture": "X64",
-    ///     "buildDate": "2024-04-03T14:22:43.0355807+00:00",
-    ///     "commitHash": "3ca66743c2e575bddee435a1ca6066ce98e58ec2",
-    ///     "branchName": "main"
-    /// }
+    ///
+    ///     {
+    ///         "version": "0.10.0.0",
+    ///         "architecture": "X64",
+    ///         "buildDate": "2024-04-03T14:22:43.0355807+00:00",
+    ///         "commitHash": "3ca66743c2e575bddee435a1ca6066ce98e58ec2",
+    ///         "branchName": "main"
+    ///     }
     /// </remarks>
     /// <returns>Build Info</returns>
     [Route("buildInfo")]
