@@ -8,8 +8,7 @@ public class RepoAdminProfile : Profile
 {
     public RepoAdminProfile()
     {
-        CreateMap<VpmRepoEntity, RepoAdmin>();
-        CreateMap<RepoAdmin, VpmRepoEntity>();
-        CreateMap<RepoAdminUpdateDto, VpmRepoEntity>();
+        CreateMap<RepoAdminUpdateDto, VpmRepoEntity>()
+            .ForMember(dest => dest.RepoId, opt => opt.MapFrom(src => src.ApiId));
     }
 }

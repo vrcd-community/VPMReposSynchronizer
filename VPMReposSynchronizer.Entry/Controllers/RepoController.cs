@@ -4,33 +4,34 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types.RepoAdmin;
+using VPMReposSynchronizer.Core.Models.Types.RepoBrowser;
 using VPMReposSynchronizer.Core.Services;
 using VPMReposSynchronizer.Core.Services.RepoSync;
 
 namespace VPMReposSynchronizer.Entry.Controllers;
 
 [ApiController]
-[Route("admin/repos")]
+[Route("repos")]
 [Produces("application/json")]
-[Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
-public class RepoAdminController(
+public class RepoController(
+    RepoBrowserService repoBrowserService,
     RepoMetaDataService repoMetaDataService,
     RepoSyncTaskScheduleService repoSyncTaskScheduleService,
     IMapper mapper) : ControllerBase
 {
+    [Route("")]
     [HttpGet]
-    [ProducesResponseType<RepoAdmin[]>(StatusCodes.Status200OK)]
-    public async Task<RepoAdmin[]> Index()
+    [ProducesResponseType<BrowserRepo[]>(StatusCodes.Status200OK)]
+    public async Task<BrowserRepo[]> GetAllRepos()
     {
-        var repos = await repoMetaDataService.GetAllRepos();
-
-        return mapper.Map<RepoAdmin[]>(repos);
+        return await repoBrowserService.GetAllReposAsync();
     }
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Create(RepoAdmin repo)
+    [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
+    public async Task<IActionResult> Create(RepoAdminUpdateDto repo)
     {
         var repoEntity = mapper.Map<VpmRepoEntity>(repo);
 
@@ -52,6 +53,7 @@ public class RepoAdminController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<IActionResult> Update(string id, RepoAdminUpdateDto repo)
     {
         if (!await repoMetaDataService.IsRepoExist(id))
@@ -80,6 +82,7 @@ public class RepoAdminController(
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<IActionResult> Delete(string id)
     {
         if (!await repoMetaDataService.IsRepoExist(id))
@@ -92,24 +95,10 @@ public class RepoAdminController(
         return NoContent();
     }
 
-    [HttpGet("{id}")]
-    [ProducesResponseType<RepoAdmin>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Get(string id)
-    {
-        var repo = await repoMetaDataService.GetRepoById(id);
-
-        if (repo is null)
-        {
-            return NotFound();
-        }
-
-        return Ok(mapper.Map<RepoAdmin>(repo));
-    }
-
     [HttpPost("{id}/sync")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<IActionResult> Sync(string id)
     {
         if (!await repoMetaDataService.IsRepoExist(id))
@@ -117,7 +106,54 @@ public class RepoAdminController(
             return NotFound();
         }
 
-        repoSyncTaskScheduleService.InvokeSyncTaskAsync(id);
+        await repoSyncTaskScheduleService.InvokeSyncTaskAsync(id);
         return NoContent();
+    }
+
+    [Route("{id}")]
+    [HttpGet]
+    [ProducesResponseType<BrowserRepo>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetRepo(string id)
+    {
+        var repo = await repoBrowserService.GetRepoAsync(id);
+
+        if (repo is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(repo);
+    }
+
+    [Route("{repoId}/packages")]
+    [HttpGet]
+    [ProducesResponseType<BrowserPackage[]>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAllPackage(string repoId)
+    {
+        if (await repoBrowserService.GetRepoAsync(repoId) is null)
+        {
+            return NotFound();
+        }
+
+        var packages = await repoBrowserService.GetAllPackagesAsync(repoId);
+
+        return Ok(packages);
+    }
+
+    [Route("{repoId}/packages/{packageId}")]
+    [HttpGet]
+    [ProducesResponseType<BrowserPackage>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPackage(string repoId, string packageId)
+    {
+        var package = await repoBrowserService.GetPackageAsync(repoId, packageId);
+        if (package == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(package);
     }
 }
