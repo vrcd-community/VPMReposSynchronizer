@@ -22,7 +22,6 @@
         <PackageReference Include="AutoMapper" Version="13.0.1"/>
         <PackageReference Include="AWSSDK.S3" Version="3.7.307.19" />
         <PackageReference Include="Cronos" Version="0.8.4" />
-        <PackageReference Include="FreeScheduler" Version="2.0.30" />
         <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.4" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.4" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.4">
@@ -44,6 +43,10 @@
 
     <ItemGroup>
         <None Remove="gitinfo.txt"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\FluentScheduler\FluentScheduler\FluentScheduler.csproj" />
     </ItemGroup>
 
     <ImportGroup>

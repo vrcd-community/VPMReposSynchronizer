@@ -1,0 +1,3 @@
+[submodule "FluentScheduler"]
+	path = FluentScheduler
+	url = https://github.com/fluentscheduler/FluentScheduler.git

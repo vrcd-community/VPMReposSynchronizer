@@ -153,30 +153,9 @@ builder.Services.AddTransient<RepoSyncStatusService>();
 
 builder.Services.AddHostedService<RepoSynchronizerHostService>();
 builder.Services.AddSingleton<RepoSyncTaskScheduleService>();
-builder.Services.AddSingleton(services =>
-{
-    return new FreeSchedulerBuilder()
-        .UseCustomInterval(task =>
-            CronExpression.Parse(task.IntervalArgument).GetNextOccurrence(DateTime.UtcNow) - DateTime.UtcNow)
-        .OnExecuting(task =>
-        {
-            Log.Information("Task {Task} ({TaskId}) executing", task.Topic, task.Id);
 
-            Task.Run(async () =>
-            {
-                using var scope = services.CreateScope();
-                var repoSynchronizerService = scope.ServiceProvider.GetRequiredService<RepoSynchronizerService>();
-
-                await repoSynchronizerService.StartSync(task.Body);
-            }).GetAwaiter().GetResult();
-        })
-        .OnExecuted((info, log) =>
-        {
-            Log.Information("Task {Task} ({TaskId}) executed, IsSuccess: {Result}", info.Topic, info.Id,
-                log.Success);
-        })
-        .Build();
-});
+builder.Services.AddHostedService<FluentSchedulerHostService>();
+builder.Services.AddSingleton<FluentSchedulerService>();
 
 #endregion
 

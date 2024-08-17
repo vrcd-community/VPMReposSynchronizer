@@ -1,11 +1,9 @@
-﻿using FreeScheduler;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 
 namespace VPMReposSynchronizer.Core.Services.RepoSync;
 
 public class RepoSynchronizerHostService(
-    RepoSyncTaskScheduleService repoSyncTaskScheduleService,
-    Scheduler scheduler) : IHostedService
+    RepoSyncTaskScheduleService repoSyncTaskScheduleService) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -14,7 +12,6 @@ public class RepoSynchronizerHostService(
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        scheduler.Dispose();
         return Task.CompletedTask;
     }
 }

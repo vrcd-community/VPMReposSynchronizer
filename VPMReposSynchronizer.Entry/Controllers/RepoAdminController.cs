@@ -117,7 +117,7 @@ public class RepoAdminController(
             return NotFound();
         }
 
-        repoSyncTaskScheduleService.InvokeSyncTask(id);
+        repoSyncTaskScheduleService.InvokeSyncTaskAsync(id);
         return NoContent();
     }
 }

@@ -1,49 +1,86 @@
-﻿using FreeScheduler;
+﻿using FluentScheduler;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using VPMReposSynchronizer.Core.Models.Entity;
 
 namespace VPMReposSynchronizer.Core.Services.RepoSync;
 
 public class RepoSyncTaskScheduleService(
     IServiceScopeFactory serviceScopeFactory,
-    ILogger<RepoSyncTaskScheduleService> logger,
-    Scheduler scheduler)
+    FluentSchedulerService fluentSchedulerService,
+    ILogger<RepoSyncTaskScheduleService> logger)
 {
-    private readonly List<string> _taskIds = [];
-
     public async Task ScheduleAllTasks()
     {
+        logger.LogInformation("Removing all exists tasks");
+        await fluentSchedulerService.RemoveAllSchedulesAsync();
+
+        await ScheduleAllTasksInternal();
+    }
+
+    private async Task ScheduleAllTasksInternal()
+    {
+        logger.LogInformation("Scheduling all tasks");
+
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         var repoMetaDataService = scope.ServiceProvider.GetRequiredService<RepoMetaDataService>();
 
-        logger.LogInformation("Scheduling all tasks");
         var repos = await repoMetaDataService.GetAllRepos();
 
-        logger.LogInformation("Removing all exists tasks");
-        foreach (var taskId in _taskIds)
-        {
-            logger.LogInformation("Removing task {TaskId}", taskId);
-            scheduler.RemoveTask(taskId);
-        }
-
-        logger.LogInformation("Adding new tasks");
         foreach (var repo in repos)
         {
             logger.LogInformation("Adding task for repo {RepoId}", repo.Id);
-            var taskId = scheduler.AddTaskCustom("SyncRepo", repo.Id, repo.SyncTaskCron);
-            _taskIds.Add(taskId);
+
+            var schedule = new Schedule(async () =>
+            {
+                using var jobScope = serviceScopeFactory.CreateScope();
+                var repoSynchronizerService = jobScope.ServiceProvider.GetRequiredService<RepoSynchronizerService>();
+
+                await repoSynchronizerService.StartSync(repo.Id);
+            }, repo.SyncTaskCron);
+
+            fluentSchedulerService.AddSchedule($"Sync Repos {repo.Id} ({repo.SyncTaskCron}): {repo.UpStreamUrl}",
+                schedule, $"repo-sync-{repo.Id}");
         }
 
         logger.LogInformation("All tasks scheduled");
     }
 
-    public async void InvokeSyncTask(string repoId)
+    public async Task InvokeSyncTaskAsync(string repoId)
     {
-        await using var scope = serviceScopeFactory.CreateAsyncScope();
-        var repoSynchronizerService = scope.ServiceProvider.GetRequiredService<RepoSynchronizerService>();
+        if (!fluentSchedulerService.AllSchedules.TryGetValue($"repo-sync-{repoId}", out var schedulePair))
+        {
+            throw new KeyNotFoundException("Schedule for the specify repo not found");
+        }
 
-        logger.LogInformation("Invoking sync task for repo {RepoId}", repoId);
-        await repoSynchronizerService.StartSync(repoId);
-        logger.LogInformation("Sync task for repo {RepoId} invoked", repoId);
+        var scope = serviceScopeFactory.CreateAsyncScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        var repoSyncTaskService = serviceProvider.GetRequiredService<RepoSyncTaskService>();
+        var latestSyncTask = await repoSyncTaskService.GetLatestSyncTaskAsync(repoId);
+
+        if (latestSyncTask is not null && latestSyncTask.Status == SyncTaskStatus.Running)
+        {
+            throw new InvalidOperationException("There is already a sync task is running for this repo");
+        }
+
+        var repoSynchronizerService = serviceProvider.GetRequiredService<RepoSynchronizerService>();
+
+        schedulePair.Item2.Stop();
+
+        _ = Task.Run(async () =>
+        {
+            logger.LogInformation("Create sync task for repo {RepoId}", repoId);
+
+            try
+            {
+                await repoSynchronizerService.StartSync(repoId);
+            }
+            finally
+            {
+                schedulePair.Item2.Start();
+                await scope.DisposeAsync();
+            }
+        });
     }
 }
