@@ -1,7 +1,7 @@
-﻿using AutoMapper;
+﻿using System.ComponentModel.DataAnnotations;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using VPMReposSynchronizer.Core.Models.Types;
-using VPMReposSynchronizer.Core.Services;
 using VPMReposSynchronizer.Core.Services.RepoSync;
 
 namespace VPMReposSynchronizer.Entry.Controllers;
@@ -12,9 +12,9 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 public class SyncTaskController(RepoSyncTaskService repoSyncTaskService, IMapper mapper) : ControllerBase
 {
     [HttpGet]
-    public async Task<SyncTaskPublic[]> Index()
+    public async Task<SyncTaskPublic[]> Index([Range(0, int.MaxValue)] int offset = 0, [Range(1, 100)] int limit = 20)
     {
-        var syncTasks = await repoSyncTaskService.GetSyncTasksAsync();
+        var syncTasks = await repoSyncTaskService.GetSyncTasksAsync(offset, limit);
 
         return mapper.Map<SyncTaskPublic[]>(syncTasks);
     }
