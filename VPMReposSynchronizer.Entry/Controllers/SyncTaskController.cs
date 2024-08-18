@@ -48,7 +48,7 @@ public class SyncTaskController(RepoSyncTaskService repoSyncTaskService, IMapper
             return NotFound();
         }
 
-        var logPath = syncTask.LogPath;
+        var logPath = Path.GetFullPath(syncTask.LogPath);
 
         if (!System.IO.File.Exists(logPath))
         {
