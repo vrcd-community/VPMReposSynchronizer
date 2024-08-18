@@ -6,7 +6,8 @@ namespace VPMReposSynchronizer.Core.Services.RepoSync;
 
 public class RepoSyncTaskService(DefaultDbContext defaultDbContext)
 {
-    public async ValueTask<long> AddSyncTaskAsync(string repoId, string logPath, SyncTaskStatus status = SyncTaskStatus.Running)
+    public async ValueTask<long> AddSyncTaskAsync(string repoId, string logPath,
+        SyncTaskStatus status = SyncTaskStatus.Running)
     {
         var syncTaskEntity = new SyncTaskEntity
         {
@@ -56,6 +57,17 @@ public class RepoSyncTaskService(DefaultDbContext defaultDbContext)
     {
         defaultDbContext.SyncTasks.Update(syncTaskEntity);
         await defaultDbContext.SaveChangesAsync();
+    }
+
+    public async Task MarkAllUnCompletedTaskAsInterruptedAsync()
+    {
+        var currentDateTime = DateTimeOffset.Now;
+
+        await defaultDbContext.SyncTasks
+            .Where(task => task.Status == SyncTaskStatus.Running)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(task => task.Status, status => SyncTaskStatus.Interrupted)
+                .SetProperty(task => task.EndTime, endTime => currentDateTime));
     }
 
     public async ValueTask<SyncTaskEntity[]> GetSyncTasksAsync()
