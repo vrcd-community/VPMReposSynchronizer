@@ -41,7 +41,7 @@ public class RepoSynchronizerService(
         var taskId = await repoSyncTaskService.AddSyncTaskAsync(repoId, "");
 
         var logPath = Path.GetFullPath(Path.Combine("sync-tasks-logs",
-            $"syncTask-{taskId}-{repoId}-{DateTimeOffset.Now:yyyy-MM-dd-HH-mm-ss}.log"));
+            repoId, $"{taskId}-{repoId}-{DateTimeOffset.Now:yyyy-MM-dd-HH-mm-ss}.log"));
         var taskLogger = GetTaskLogger(logger, logPath);
 
         await repoSyncTaskService.UpdateSyncTaskAsync(taskId, logPath);
