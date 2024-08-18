@@ -243,8 +243,9 @@ builder.Services.AddCors(options =>
         policy.AllowAnyOrigin());
 });
 
-#endregion
+builder.Services.AddProblemDetails();
 
+#endregion
 
 #region HttpClient
 
