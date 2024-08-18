@@ -137,7 +137,7 @@ public class RepoSynchronizerService(
                 "Package {PackageName}@{PackageVersion} have not ZipSha256, we will download it anyway if it's not downloaded before",
                 package.Name, package.Version);
 
-        if (await repoMetaDataService.GetVpmPackage(package.Name, package.Version) is not { } packageEntity)
+        if (await repoMetaDataService.GetVpmPackage(package.Name, package.Version, sourceRepoId) is not { } packageEntity)
         {
             if (sha256 is null || await fileHostService.LookupFileByHashAsync(sha256) is not { } fileId)
                 return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger, sha256);
