@@ -36,13 +36,11 @@ public class RepoMetaDataService(
             defaultDbContext.Packages.Add(vpmPackageEntity);
     }
 
-    public async Task MarkAddOrUpdateVpmPackageAsync(VpmPackage vpmPackage, string fileId, string repoId,
-        string originRepoId)
+    public async Task MarkAddOrUpdateVpmPackageAsync(VpmPackage vpmPackage, string fileId, string repoId)
     {
         var entity = mapper.Map<VpmPackageEntity>(vpmPackage);
         entity.FileId = fileId;
         entity.UpstreamId = repoId;
-        entity.UpstreamOriginId = originRepoId;
 
         await MarkAddOrUpdateVpmPackageAsync(entity);
     }

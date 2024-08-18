@@ -96,8 +96,7 @@ public class RepoSynchronizerService(
         {
             var fileId = await ProcessPackageFileAsync(package, sourceRepoId, taskLogger);
 
-            await repoMetaDataService.MarkAddOrUpdateVpmPackageAsync(package, fileId, sourceRepoId,
-                repo.Id ?? sourceRepoId);
+            await repoMetaDataService.MarkAddOrUpdateVpmPackageAsync(package, fileId, sourceRepoId);
             taskLogger.LogInformation("Add {PackageName}@{PackageVersion} to DataBase", package.Name, package.Version);
         }
 
