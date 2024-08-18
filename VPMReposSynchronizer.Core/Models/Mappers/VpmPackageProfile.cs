@@ -59,17 +59,21 @@ public class VpmPackageProfile : Profile
                 opt => opt.MapFrom(src => ConvertArrayToString(src.LegacyPackages ?? Array.Empty<string>())))
             // Dependencies
             .ForMember(dest => dest.Dependencies,
-                opt => opt.MapFrom(src => ConvertDictionaryToString(src.Dependencies ?? new Dictionary<string, string>())))
+                opt => opt.MapFrom(src =>
+                    ConvertDictionaryToString(src.Dependencies ?? new Dictionary<string, string>())))
             .ForMember(dest => dest.VpmDependencies,
-                opt => opt.MapFrom(src => ConvertDictionaryToString(src.VpmDependencies ?? new Dictionary<string, string>())))
+                opt => opt.MapFrom(src =>
+                    ConvertDictionaryToString(src.VpmDependencies ?? new Dictionary<string, string>())))
             .ForMember(dest => dest.GitDependencies,
-                opt => opt.MapFrom(src => ConvertDictionaryToString(src.GitDependencies ?? new Dictionary<string, string>())))
+                opt => opt.MapFrom(src =>
+                    ConvertDictionaryToString(src.GitDependencies ?? new Dictionary<string, string>())))
             // Headers
             .ForMember(dest => dest.Headers,
                 opt => opt.MapFrom(src => ConvertDictionaryToString(src.Headers ?? new Dictionary<string, string>())))
             // Author
             .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author == null ? null : src.Author.Name))
-            .ForMember(dest => dest.AuthorEmail, opt => opt.MapFrom(src => src.Author == null ? null : src.Author.Email))
+            .ForMember(dest => dest.AuthorEmail,
+                opt => opt.MapFrom(src => src.Author == null ? null : src.Author.Email))
             .ForMember(dest => dest.AuthorUrl, opt => opt.MapFrom(src => src.Author == null ? null : src.Author.Url))
             // Keywords
             .ForMember(dest => dest.Keywords,

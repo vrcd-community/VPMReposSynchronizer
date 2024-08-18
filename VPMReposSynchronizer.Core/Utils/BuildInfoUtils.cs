@@ -24,11 +24,11 @@ public static class BuildInfoUtils
         var branchName = branchNameAttribute?.Value ?? "unknown";
 
         return new BuildInfo(
-            Version: assembly.GetName().Version?.ToString(),
-            Architecture: RuntimeInformation.OSArchitecture.ToString(),
-            BuildDate: buildTime,
-            CommitHash: commitHash,
-            BranchName: branchName
+            assembly.GetName().Version?.ToString(),
+            RuntimeInformation.OSArchitecture.ToString(),
+            buildTime,
+            commitHash,
+            branchName
         );
     }
 }

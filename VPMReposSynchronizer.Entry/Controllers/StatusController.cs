@@ -6,7 +6,7 @@ using VPMReposSynchronizer.Core.Utils;
 namespace VPMReposSynchronizer.Entry.Controllers;
 
 /// <summary>
-/// Service Status Controller
+///     Service Status Controller
 /// </summary>
 [ApiController]
 [Route("status")]
@@ -14,12 +14,11 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 public class StatusController(RepoSyncStatusService repoSyncStatusService) : ControllerBase
 {
     /// <summary>
-    /// Get sync status.
+    ///     Get sync status.
     /// </summary>
     /// <returns>Sync Status</returns>
     /// <remarks>
-    /// Sample Response:
-    ///
+    ///     Sample Response:
     ///     [
     ///         {
     ///             "syncStarted": "2024-01-13T23:15:09.622317+08:00",
@@ -30,7 +29,6 @@ public class StatusController(RepoSyncStatusService repoSyncStatusService) : Con
     ///             "message": ""
     ///         }
     ///     ]
-    ///
     /// </remarks>
     /// <response code="200">Sync Status</response>
     [Route("sync")]
@@ -42,11 +40,10 @@ public class StatusController(RepoSyncStatusService repoSyncStatusService) : Con
     }
 
     /// <summary>
-    /// Get build information.
+    ///     Get build information.
     /// </summary>
     /// <remarks>
-    /// Sample Response:
-    ///
+    ///     Sample Response:
     ///     {
     ///         "version": "0.10.0.0",
     ///         "architecture": "X64",

@@ -6,8 +6,8 @@ namespace VPMReposSynchronizer.Core.Services;
 
 public class FluentSchedulerService(ILogger<FluentSchedulerService> logger)
 {
-    public ReadOnlyDictionary<string, (string, Schedule)> AllSchedules => _allSchedules.AsReadOnly();
     private readonly Dictionary<string, (string, Schedule)> _allSchedules = [];
+    public ReadOnlyDictionary<string, (string, Schedule)> AllSchedules => _allSchedules.AsReadOnly();
 
     public string AddSchedule(string scheduleName, Schedule schedule, string? scheduleKey = null)
     {
@@ -19,7 +19,8 @@ public class FluentSchedulerService(ILogger<FluentSchedulerService> logger)
 
         schedule.JobStarted += (_, args) =>
         {
-            logger.LogInformation("Schedule job {ScheduleName} Started At {StartedTime}", scheduleName, args.StartTime);
+            logger.LogInformation("Schedule job {ScheduleName} Started At {StartedTime}", scheduleName,
+                args.StartTime);
         };
 
         schedule.JobEnded += (_, args) =>
@@ -43,9 +44,7 @@ public class FluentSchedulerService(ILogger<FluentSchedulerService> logger)
     public async Task RemoveScheduleAsync(string key)
     {
         if (!_allSchedules.TryGetValue(key, out var schedule))
-        {
             throw new KeyNotFoundException("Schedule with specify id not exist");
-        }
 
         await Task.Run(schedule.Item2.StopAndBlock);
 

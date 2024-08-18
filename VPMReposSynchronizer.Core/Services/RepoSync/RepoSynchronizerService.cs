@@ -22,7 +22,7 @@ public class RepoSynchronizerService(
     HttpClient httpClient,
     DefaultDbContext defaultDbContext)
 {
-    const string logTemplate =
+    private const string logTemplate =
         "[{@t:yyyy-MM-dd HH:mm:ss} " +
         "{@l:u3}]" +
         "{#if SourceContext is not null} [{Substring(SourceContext, LastIndexOf(SourceContext, '.') + 1)}]{#end}" +
@@ -33,10 +33,7 @@ public class RepoSynchronizerService(
     public async Task StartSync(string repoId)
     {
         var repo = await repoMetaDataService.GetRepoById(repoId);
-        if (repo is null)
-        {
-            throw new InvalidOperationException($"Repo with id {repoId} not found");
-        }
+        if (repo is null) throw new InvalidOperationException($"Repo with id {repoId} not found");
 
         var taskId = await repoSyncTaskService.AddSyncTaskAsync(repoId, "");
 
@@ -124,10 +121,7 @@ public class RepoSynchronizerService(
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
-        if (repo is null)
-        {
-            throw new InvalidOperationException("Deserialize Repo Response is not valid");
-        }
+        if (repo is null) throw new InvalidOperationException("Deserialize Repo Response is not valid");
 
         return repo;
     }
@@ -138,18 +132,14 @@ public class RepoSynchronizerService(
         var fileName = $"{package.Name}@{package.Version}@{sourceRepoId}.zip";
 
         if (sha256 is null)
-        {
             taskLogger.LogWarning(
                 "Package {PackageName}@{PackageVersion} have not ZipSha256, we will download it anyway if it's not downloaded before",
                 package.Name, package.Version);
-        }
 
         if (await repoMetaDataService.GetVpmPackage(package.Name, package.Version) is not { } packageEntity)
         {
             if (sha256 is null || await fileHostService.LookupFileByHashAsync(sha256) is not { } fileId)
-            {
                 return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger, sha256);
-            }
 
             taskLogger.LogInformation(
                 "File with same ZipSha256 is already Downloaded & Uploaded, Skip Download {PackageName}@{PackageVersion}",
@@ -196,12 +186,10 @@ public class RepoSynchronizerService(
         }
 
         if (packageEntity.ZipSha256 != sha256)
-        {
             taskLogger.LogWarning(
                 "Package {PackageName}@{PackageVersion} have different ZipSha256 compare with exist package MeatData, " +
                 "we will overwrite the exist one with remote one, Exist: {ExistSha256}, Remote: {RemoteSha256}",
                 package.Name, package.Version, packageEntity.ZipSha256, package.ZipSha256);
-        }
 
         taskLogger.LogInformation(
             "Start Downloading {PackageName}@{PackageVersion}@{SourceRepoId}: {PackageUrl}",

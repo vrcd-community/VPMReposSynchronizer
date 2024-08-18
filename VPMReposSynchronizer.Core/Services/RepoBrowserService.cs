@@ -6,7 +6,6 @@ using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Models.Types.RepoBrowser;
 using VPMReposSynchronizer.Core.Options;
-using VPMReposSynchronizer.Core.Services.RepoSync;
 
 namespace VPMReposSynchronizer.Core.Services;
 
@@ -41,8 +40,8 @@ public class RepoBrowserService(
             .GroupBy(package => package.Name)
             .Select(package => package.OrderByDescending(pkg => pkg.Version, SemVersion.SortOrderComparer))
             .Select(packagesGroup =>
-                new BrowserPackage(Latest: packagesGroup.First(), Versions: packagesGroup.ToArray(), RepoId: repoId,
-                    RepoUrl: GetRepoUrl(repoId)));
+                new BrowserPackage(packagesGroup.First(), packagesGroup.ToArray(), repoId,
+                    GetRepoUrl(repoId)));
 
         return packages.ToArray();
     }
@@ -60,9 +59,9 @@ public class RepoBrowserService(
                 var versions = group.Select(GetPackageWithUrl)
                     .OrderByDescending(package => package.Version, SemVersion.SortOrderComparer).ToArray();
 
-                return new BrowserPackage(Latest: versions[0], Versions: versions,
-                    RepoId: packagesGroup[index].Select(pkg => pkg.UpstreamId).First(),
-                    RepoUrl: GetRepoUrl(packagesGroup[index].Select(pkg => pkg.UpstreamId).First()));
+                return new BrowserPackage(versions[0], versions,
+                    packagesGroup[index].Select(pkg => pkg.UpstreamId).First(),
+                    GetRepoUrl(packagesGroup[index].Select(pkg => pkg.UpstreamId).First()));
             })
             .ToArray();
     }
@@ -71,10 +70,7 @@ public class RepoBrowserService(
     {
         var repoEntity = await repoMetaDataService.GetRepoById(id);
 
-        if (repoEntity is null)
-        {
-            return null;
-        }
+        if (repoEntity is null) return null;
 
         var syncStatus = await repoSyncStatusService.GetSyncStatusAsync(id);
 
@@ -99,8 +95,8 @@ public class RepoBrowserService(
 
         return packages.Length == 0
             ? null
-            : new BrowserPackage(Latest: packages[0], Versions: packages, RepoId: repoId,
-                RepoUrl: GetRepoUrl(repoId));
+            : new BrowserPackage(packages[0], packages, repoId,
+                GetRepoUrl(repoId));
     }
 
     private string GetRepoUrl(string id)

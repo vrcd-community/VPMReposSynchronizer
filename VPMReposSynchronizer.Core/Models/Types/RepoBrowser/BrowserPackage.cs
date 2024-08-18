@@ -5,4 +5,4 @@ public record BrowserPackage(
     VpmPackage[] Versions,
     string RepoId,
     string RepoUrl
-    );
+);

@@ -35,15 +35,9 @@ public class RepoController(
     {
         var repoEntity = mapper.Map<VpmRepoEntity>(repo);
 
-        if (!Uri.TryCreate(repoEntity.UpStreamUrl, UriKind.Absolute, out _))
-        {
-            return BadRequest("Invalid url.");
-        }
+        if (!Uri.TryCreate(repoEntity.UpStreamUrl, UriKind.Absolute, out _)) return BadRequest("Invalid url.");
 
-        if (!CronExpression.TryParse(repoEntity.SyncTaskCron, out _))
-        {
-            return BadRequest("Invalid cron expression.");
-        }
+        if (!CronExpression.TryParse(repoEntity.SyncTaskCron, out _)) return BadRequest("Invalid cron expression.");
 
         await repoMetaDataService.AddRepoAsync(repoEntity);
         return NoContent();
@@ -56,23 +50,14 @@ public class RepoController(
     [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<IActionResult> Update(string id, RepoAdminUpdateDto repo)
     {
-        if (!await repoMetaDataService.IsRepoExist(id))
-        {
-            return NotFound();
-        }
+        if (!await repoMetaDataService.IsRepoExist(id)) return NotFound();
 
         var repoEntity = mapper.Map<VpmRepoEntity>(repo);
         repoEntity.Id = id;
 
-        if (!Uri.TryCreate(repoEntity.UpStreamUrl, UriKind.Absolute, out _))
-        {
-            return BadRequest("Invalid url.");
-        }
+        if (!Uri.TryCreate(repoEntity.UpStreamUrl, UriKind.Absolute, out _)) return BadRequest("Invalid url.");
 
-        if (!CronExpression.TryParse(repoEntity.SyncTaskCron, out _))
-        {
-            return BadRequest("Invalid cron expression.");
-        }
+        if (!CronExpression.TryParse(repoEntity.SyncTaskCron, out _)) return BadRequest("Invalid cron expression.");
 
         await repoMetaDataService.UpdateRepoAsync(repoEntity);
 
@@ -85,10 +70,7 @@ public class RepoController(
     [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<IActionResult> Delete(string id)
     {
-        if (!await repoMetaDataService.IsRepoExist(id))
-        {
-            return NotFound();
-        }
+        if (!await repoMetaDataService.IsRepoExist(id)) return NotFound();
 
         await repoMetaDataService.DeleteRepoAsync(id);
 
@@ -101,10 +83,7 @@ public class RepoController(
     [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<IActionResult> Sync(string id)
     {
-        if (!await repoMetaDataService.IsRepoExist(id))
-        {
-            return NotFound();
-        }
+        if (!await repoMetaDataService.IsRepoExist(id)) return NotFound();
 
         await repoSyncTaskScheduleService.InvokeSyncTaskAsync(id);
         return NoContent();
@@ -118,10 +97,7 @@ public class RepoController(
     {
         var repo = await repoBrowserService.GetRepoAsync(id);
 
-        if (repo is null)
-        {
-            return NotFound();
-        }
+        if (repo is null) return NotFound();
 
         return Ok(repo);
     }
@@ -132,10 +108,7 @@ public class RepoController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAllPackage(string repoId)
     {
-        if (await repoBrowserService.GetRepoAsync(repoId) is null)
-        {
-            return NotFound();
-        }
+        if (await repoBrowserService.GetRepoAsync(repoId) is null) return NotFound();
 
         var packages = await repoBrowserService.GetAllPackagesAsync(repoId);
 
@@ -149,10 +122,7 @@ public class RepoController(
     public async Task<IActionResult> GetPackage(string repoId, string packageId)
     {
         var package = await repoBrowserService.GetPackageAsync(repoId, packageId);
-        if (package == null)
-        {
-            return NotFound();
-        }
+        if (package == null) return NotFound();
 
         return Ok(package);
     }

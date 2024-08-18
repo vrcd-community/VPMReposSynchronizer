@@ -28,10 +28,7 @@ public class RepoSyncTaskService(DefaultDbContext defaultDbContext)
     {
         var syncTaskEntity = await defaultDbContext.SyncTasks.FindAsync(id);
 
-        if (syncTaskEntity is null)
-        {
-            throw new InvalidOperationException($"Sync task with id {id} not found");
-        }
+        if (syncTaskEntity is null) throw new InvalidOperationException($"Sync task with id {id} not found");
 
         syncTaskEntity.LogPath = logPath;
 
@@ -42,10 +39,7 @@ public class RepoSyncTaskService(DefaultDbContext defaultDbContext)
     {
         var syncTaskEntity = await defaultDbContext.SyncTasks.FindAsync(id);
 
-        if (syncTaskEntity is null)
-        {
-            throw new InvalidOperationException($"Sync task with id {id} not found");
-        }
+        if (syncTaskEntity is null) throw new InvalidOperationException($"Sync task with id {id} not found");
 
         syncTaskEntity.EndTime = endTime;
         syncTaskEntity.Status = status;

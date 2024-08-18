@@ -5,9 +5,10 @@ using Microsoft.Extensions.Options;
 
 namespace VPMReposSynchronizer.Entry.AuthenticationHandlers;
 
-public class ApiKeyAuthenticationHandler: AuthenticationHandler<ApiKeyAuthenticationOptions>
+public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthenticationOptions>
 {
-    public ApiKeyAuthenticationHandler(IOptionsMonitor<ApiKeyAuthenticationOptions> options, ILoggerFactory logger, UrlEncoder encoder) : base(options, logger, encoder)
+    public ApiKeyAuthenticationHandler(IOptionsMonitor<ApiKeyAuthenticationOptions> options, ILoggerFactory logger,
+        UrlEncoder encoder) : base(options, logger, encoder)
     {
     }
 
@@ -15,15 +16,9 @@ public class ApiKeyAuthenticationHandler: AuthenticationHandler<ApiKeyAuthentica
     {
         var authHeader = Request.Headers["X-Api-Key"];
 
-        if (string.IsNullOrWhiteSpace(authHeader))
-        {
-            return Task.FromResult(AuthenticateResult.NoResult());
-        }
+        if (string.IsNullOrWhiteSpace(authHeader)) return Task.FromResult(AuthenticateResult.NoResult());
 
-        if (authHeader != Options.ApiKey)
-        {
-            Task.FromResult(AuthenticateResult.Fail("Invalid ApiKey"));
-        }
+        if (authHeader != Options.ApiKey) Task.FromResult(AuthenticateResult.Fail("Invalid ApiKey"));
 
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(new[]
         {

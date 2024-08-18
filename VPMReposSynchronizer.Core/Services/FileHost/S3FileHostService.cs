@@ -12,10 +12,10 @@ namespace VPMReposSynchronizer.Core.Services.FileHost;
 
 public class S3FileHostService : IFileHostService
 {
-    private readonly IOptions<S3FileHostServiceOptions> _options;
     private readonly AmazonS3Client _client;
     private readonly DefaultDbContext _dbContext;
     private readonly ILogger<S3FileHostService> _logger;
+    private readonly IOptions<S3FileHostServiceOptions> _options;
 
     public S3FileHostService(IOptions<S3FileHostServiceOptions> options, DefaultDbContext dbContext,
         ILogger<S3FileHostService> logger)
@@ -66,7 +66,7 @@ public class S3FileHostService : IFileHostService
             ContentType = "application/octet-stream"
         });
 
-        _logger.LogInformation("Uploaded File {Path} / {FileKey} to S3, Creating File Record....",path, key);
+        _logger.LogInformation("Uploaded File {Path} / {FileKey} to S3, Creating File Record....", path, key);
 
         _dbContext.S3FileRecords.Add(new S3FileRecordEntity
         {
@@ -83,10 +83,7 @@ public class S3FileHostService : IFileHostService
 
     public async Task<string> GetFileUriAsync(string fileId)
     {
-        if (_options.Value.EnablePublicAccess)
-        {
-            return new Uri(_options.Value.CdnUrl, fileId).ToString();
-        }
+        if (_options.Value.EnablePublicAccess) return new Uri(_options.Value.CdnUrl, fileId).ToString();
 
         return await _client.GetPreSignedURLAsync(new GetPreSignedUrlRequest
         {

@@ -12,4 +12,4 @@ public record VpmRepo(
 
 public record VpmRepoPackageVersions(
     Dictionary<string, VpmPackage> Versions
-    );
+);

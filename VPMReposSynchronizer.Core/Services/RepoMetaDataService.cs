@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Cronos;
 using Microsoft.EntityFrameworkCore;
 using VPMReposSynchronizer.Core.DbContexts;
 using VPMReposSynchronizer.Core.Models.Entity;
@@ -32,13 +31,9 @@ public class RepoMetaDataService(
     public async Task MarkAddOrUpdateVpmPackageAsync(VpmPackageEntity vpmPackageEntity)
     {
         if (await defaultDbContext.Packages.AnyAsync(package => package.PackageId == vpmPackageEntity.PackageId))
-        {
             defaultDbContext.Packages.Update(vpmPackageEntity);
-        }
         else
-        {
             defaultDbContext.Packages.Add(vpmPackageEntity);
-        }
     }
 
     public async Task MarkAddOrUpdateVpmPackageAsync(VpmPackage vpmPackage, string fileId, string repoId,
@@ -102,10 +97,7 @@ public class RepoMetaDataService(
     public async Task DeleteRepoAsync(string id)
     {
         var repo = await GetRepoById(id);
-        if (repo is null)
-        {
-            throw new InvalidOperationException("Repo not found.");
-        }
+        if (repo is null) throw new InvalidOperationException("Repo not found.");
 
         defaultDbContext.Repos.Remove(repo);
         await defaultDbContext.SaveChangesAsync();

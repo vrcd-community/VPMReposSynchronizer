@@ -49,9 +49,7 @@ public class RepoSyncTaskScheduleService(
     public async Task InvokeSyncTaskAsync(string repoId)
     {
         if (!fluentSchedulerService.AllSchedules.TryGetValue($"repo-sync-{repoId}", out var schedulePair))
-        {
             throw new KeyNotFoundException("Schedule for the specify repo not found");
-        }
 
         var scope = serviceScopeFactory.CreateAsyncScope();
         var serviceProvider = scope.ServiceProvider;
@@ -60,9 +58,7 @@ public class RepoSyncTaskScheduleService(
         var latestSyncTask = await repoSyncTaskService.GetLatestSyncTaskAsync(repoId);
 
         if (latestSyncTask is not null && latestSyncTask.Status == SyncTaskStatus.Running)
-        {
             throw new InvalidOperationException("There is already a sync task is running for this repo");
-        }
 
         var repoSynchronizerService = serviceProvider.GetRequiredService<RepoSynchronizerService>();
 

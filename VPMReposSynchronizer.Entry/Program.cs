@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Threading.RateLimiting;
-using Cronos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
@@ -72,7 +71,7 @@ builder.Services.AddSwaggerGen(options =>
         {
             Name = "AGPL3.0",
             Url = new Uri("https://github.com/vrcd-community/VPMReposSynchronizer/blob/main/LICENSE.md")
-        },
+        }
     });
 
     options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
@@ -128,10 +127,7 @@ switch (fileHostServiceOptions.FileHostServiceType)
         builder.Services.AddTransient<IFileHostService, LocalFileHostService>();
         builder.Services.AddDirectoryBrowser();
 
-        if (!Directory.Exists(filesPath))
-        {
-            Directory.CreateDirectory(filesPath);
-        }
+        if (!Directory.Exists(filesPath)) Directory.CreateDirectory(filesPath);
 
         break;
     case FileHostServiceType.S3FileHost:
@@ -179,10 +175,8 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
     rateLimiterOptions.OnRejected = (context, _) =>
     {
         if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
-        {
             context.HttpContext.Response.Headers.RetryAfter =
                 ((int)retryAfter.TotalSeconds).ToString(NumberFormatInfo.InvariantInfo);
-        }
 
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
 
@@ -207,23 +201,15 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
 
 var authOptions = builder.Configuration.GetSection("Auth").Get<AuthOptions>();
 
-if (authOptions is null)
-{
-    throw new InvalidOperationException("AuthOptions is not configured correctly");
-}
+if (authOptions is null) throw new InvalidOperationException("AuthOptions is not configured correctly");
 
 builder.Services.AddAuthentication()
-    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>("ApiKey", options =>
-{
-    options.ApiKey = authOptions.ApiKey;
-});
+    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>("ApiKey",
+        options => { options.ApiKey = authOptions.ApiKey; });
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("ApiKey", policy =>
-    {
-        policy.RequireClaim("ApiKey", authOptions.ApiKey);
-    });
+    options.AddPolicy("ApiKey", policy => { policy.RequireClaim("ApiKey", authOptions.ApiKey); });
 });
 
 #endregion
@@ -300,10 +286,7 @@ if (fileHostServiceOptions.FileHostServiceType == FileHostServiceType.LocalFileH
                     new LocalFileHostOptions().FilesPath;
     builder.Services.AddDirectoryBrowser();
 
-    if (!Directory.Exists(filesPath))
-    {
-        Directory.CreateDirectory(filesPath);
-    }
+    if (!Directory.Exists(filesPath)) Directory.CreateDirectory(filesPath);
 
     app.UseFileServer(new FileServerOptions
     {
@@ -312,7 +295,7 @@ if (fileHostServiceOptions.FileHostServiceType == FileHostServiceType.LocalFileH
         EnableDirectoryBrowsing = true,
         StaticFileOptions =
         {
-            ServeUnknownFileTypes = true,
+            ServeUnknownFileTypes = true
         }
     });
 }
@@ -328,32 +311,29 @@ app.UseAuthorization();
 
 app.UseCors();
 
-if (fileHostServiceOptions.EnableRateLimit)
-{
-    app.UseRateLimiter();
-}
+if (fileHostServiceOptions.EnableRateLimit) app.UseRateLimiter();
 
 app.MapGet("/api-docs", () => Results.Content(
-    $$"""
-      <!doctype html>
-      <html>
-      <head>
-          <title>Scalar API Reference</title>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </head>
-      <body>
-          <script id="api-reference" data-url="/swagger/v0/swagger.json"></script>
-          <script>
-          var configuration = {}
-      
-          document.getElementById('api-reference').dataset.configuration =
-              JSON.stringify(configuration)
-          </script>
-          <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
-      </body>
-      </html>
-      """,
+    """
+    <!doctype html>
+    <html>
+    <head>
+        <title>Scalar API Reference</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+    </head>
+    <body>
+        <script id="api-reference" data-url="/swagger/v0/swagger.json"></script>
+        <script>
+        var configuration = {}
+    
+        document.getElementById('api-reference').dataset.configuration =
+            JSON.stringify(configuration)
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    </body>
+    </html>
+    """,
     "text/html"
 ));
 

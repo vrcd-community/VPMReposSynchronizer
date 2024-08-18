@@ -11,7 +11,8 @@ public class SecurityRequirementsOperationFilter : IOperationFilter
         var attributes = new List<AuthorizeAttribute>();
 
         attributes.AddRange(context.MethodInfo.GetCustomAttributes(true).OfType<AuthorizeAttribute>());
-        attributes.AddRange(context.MethodInfo.DeclaringType?.GetCustomAttributes(true).OfType<AuthorizeAttribute>() ?? []);
+        attributes.AddRange(context.MethodInfo.DeclaringType?.GetCustomAttributes(true).OfType<AuthorizeAttribute>() ??
+                            []);
 
         var requiredScopes = attributes
             .Select(attr => attr.Policy)
@@ -31,7 +32,7 @@ public class SecurityRequirementsOperationFilter : IOperationFilter
         {
             new()
             {
-                [ authScheme ] = requiredScopes.ToList()
+                [authScheme] = requiredScopes.ToList()
             }
         };
     }

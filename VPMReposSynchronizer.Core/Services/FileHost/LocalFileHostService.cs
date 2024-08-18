@@ -5,7 +5,10 @@ using VPMReposSynchronizer.Core.Utils;
 
 namespace VPMReposSynchronizer.Core.Services.FileHost;
 
-public class LocalFileHostService(IOptions<LocalFileHostOptions> options, IOptions<FileHostServiceOptions> fileHostOptions, ILogger<LocalFileHostService> logger) : IFileHostService
+public class LocalFileHostService(
+    IOptions<LocalFileHostOptions> options,
+    IOptions<FileHostServiceOptions> fileHostOptions,
+    ILogger<LocalFileHostService> logger) : IFileHostService
 {
     private readonly string _filePath = options.Value.FilesPath;
 
@@ -33,10 +36,7 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options, IOptio
             Directory.CreateDirectory(_filePath);
         }
 
-        if (!Directory.Exists(fileHashPath))
-        {
-            Directory.CreateDirectory(fileHashPath);
-        }
+        if (!Directory.Exists(fileHashPath)) Directory.CreateDirectory(fileHashPath);
 
         File.Copy(path, filePath);
         logger.LogInformation("File {FileHash} ({Path}) copied to {FilePath}", fileHash, path, filePath);
@@ -49,32 +49,23 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options, IOptio
         var filePath = GetFilePath(fileId);
 
         if (filePath is not null && File.Exists(filePath))
-        {
             return Task.FromResult(new Uri(fileHostOptions.Value.BaseUrl, filePath).ToString());
-        }
 
         var exception = new InvalidOperationException("File Id (File Path) Not found",
             new FileNotFoundException("File not found", filePath));
 
         logger.LogError(exception, "File {Id} ({FilePath}) Not found", fileId, filePath);
         throw exception;
-
     }
 
     public Task<string?> LookupFileByHashAsync(string hash)
     {
         var filePath = GetFilePath(hash);
 
-        if (filePath is null)
-        {
-            return Task.FromResult<string?>(null);
-        }
+        if (filePath is null) return Task.FromResult<string?>(null);
 
         // ReSharper disable once ConvertIfStatementToReturnStatement
-        if (File.Exists(filePath))
-        {
-            return Task.FromResult<string?>(hash);
-        }
+        if (File.Exists(filePath)) return Task.FromResult<string?>(hash);
 
         return Task.FromResult<string?>(null);
     }
@@ -89,10 +80,7 @@ public class LocalFileHostService(IOptions<LocalFileHostOptions> options, IOptio
     private string? GetFilePath(string hash)
     {
         var hashPath = Path.Combine(_filePath, hash);
-        if (!Directory.Exists(Path.Combine(_filePath, hash)))
-        {
-            return null;
-        }
+        if (!Directory.Exists(Path.Combine(_filePath, hash))) return null;
 
         var files = Directory.GetFiles(hashPath);
 

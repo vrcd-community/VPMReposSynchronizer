@@ -32,10 +32,7 @@ public class RepoSyncStatusService(RepoMetaDataService repoMetaDataService, Repo
             return null;
 
         var latestSyncTask = await repoSyncTaskService.GetLatestSyncTaskAsync(repoId);
-        if (latestSyncTask is null)
-        {
-            return null;
-        }
+        if (latestSyncTask is null) return null;
 
         return new SyncStatusPublic(
             SyncEnded: latestSyncTask.EndTime,

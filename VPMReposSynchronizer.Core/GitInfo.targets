@@ -1,13 +1,13 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Target Name="GetGitInfo" BeforeTargets="BeforeBuild">
-    <Exec Command="git rev-parse HEAD" ConsoleToMSBuild="true">
-      <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitHash" />
-    </Exec>
-    <Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true">
-      <Output TaskParameter="ConsoleOutput" PropertyName="GitBranchName" />
-    </Exec>
-    <PropertyGroup>
-      <BuildTime>$([System.DateTime]::UtcNow.ToString("o"))</BuildTime>
-    </PropertyGroup>
-  </Target>
+    <Target Name="GetGitInfo" BeforeTargets="BeforeBuild">
+        <Exec Command="git rev-parse HEAD" ConsoleToMSBuild="true">
+            <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitHash"/>
+        </Exec>
+        <Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true">
+            <Output TaskParameter="ConsoleOutput" PropertyName="GitBranchName"/>
+        </Exec>
+        <PropertyGroup>
+            <BuildTime>$([System.DateTime]::UtcNow.ToString("o"))</BuildTime>
+        </PropertyGroup>
+    </Target>
 </Project>

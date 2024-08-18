@@ -10,7 +10,7 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 public class FileController(IFileHostService fileHostService) : ControllerBase
 {
     /// <summary>
-    /// Redirect to file uri.
+    ///     Redirect to file uri.
     /// </summary>
     /// <param name="fileId">File id</param>
     /// <returns>Redirect to file uri.</returns>
@@ -28,10 +28,7 @@ public class FileController(IFileHostService fileHostService) : ControllerBase
     [EnableRateLimiting("download")]
     public async Task<IActionResult> DownloadFile(string fileId)
     {
-        if (!await fileHostService.IsFileExist(fileId))
-        {
-            return NotFound();
-        }
+        if (!await fileHostService.IsFileExist(fileId)) return NotFound();
 
         var fileUri = await fileHostService.GetFileUriAsync(fileId);
 
