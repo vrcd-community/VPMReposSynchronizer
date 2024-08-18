@@ -22,6 +22,8 @@ public class RepoSynchronizerService(
     HttpClient httpClient,
     DefaultDbContext defaultDbContext)
 {
+    public static readonly string SyncTaskLoggerPath = Path.Combine("sync-tasks-logs");
+
     private const string logTemplate =
         "[{@t:yyyy-MM-dd HH:mm:ss} " +
         "{@l:u3}]" +
@@ -37,7 +39,7 @@ public class RepoSynchronizerService(
 
         var taskId = await repoSyncTaskService.AddSyncTaskAsync(repoId, "");
 
-        var logPath = Path.Combine("sync-tasks-logs",
+        var logPath = Path.Combine(SyncTaskLoggerPath,
             repoId, $"{taskId}-{repoId}-{DateTimeOffset.Now:yyyy-MM-dd-HH-mm-ss}.log");
         var taskLogger = GetTaskLogger(logger, logPath);
 

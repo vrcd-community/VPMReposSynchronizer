@@ -14,6 +14,8 @@ public class RepoSynchronizerHostService(
 
         await repoSyncTaskService.MarkAllUnCompletedTaskAsInterruptedAsync();
 
+        RepoSyncTaskService.CleanupExpiredLogFiles();
+
         await repoSyncTaskScheduleService.ScheduleAllTasks();
     }
 

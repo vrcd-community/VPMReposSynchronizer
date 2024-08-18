@@ -1,10 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Globalization;
+using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
 using VPMReposSynchronizer.Core.DbContexts;
 using VPMReposSynchronizer.Core.Models.Entity;
 
 namespace VPMReposSynchronizer.Core.Services.RepoSync;
 
-public class RepoSyncTaskService(DefaultDbContext defaultDbContext)
+public partial class RepoSyncTaskService(DefaultDbContext defaultDbContext)
 {
     public async ValueTask<long> AddSyncTaskAsync(string repoId, string logPath,
         SyncTaskStatus status = SyncTaskStatus.Running)
@@ -93,4 +95,39 @@ public class RepoSyncTaskService(DefaultDbContext defaultDbContext)
             .OrderByDescending(task => task.Id)
             .FirstOrDefaultAsync();
     }
+
+    public static void CleanupExpiredLogFiles()
+    {
+        var expiredDate = DateTimeOffset.Now - TimeSpan.FromDays(30);
+
+        var logToClear = new List<string>();
+
+        if (!Directory.Exists(RepoSynchronizerService.SyncTaskLoggerPath))
+            return;
+
+        var subDirectories = Directory.GetDirectories(RepoSynchronizerService.SyncTaskLoggerPath);
+
+        var logFileNameRegex = LogFileNameRegex();
+
+        foreach (var subDirectory in subDirectories)
+        {
+            var files = Directory.GetFiles(subDirectory)
+                .Where(file => logFileNameRegex.IsMatch(file))
+                .Where(file =>
+                    logFileNameRegex.Match(file).Groups[1].Value is { } dateStr &&
+                    DateTimeOffset.TryParseExact(dateStr, "yyyy-MM-dd-HH-mm-ss", CultureInfo.InvariantCulture,
+                        DateTimeStyles.None, out var date)
+                    && date < expiredDate);
+
+            logToClear.AddRange(files);
+        }
+
+        foreach (var logPathToClear in logToClear)
+        {
+            File.Delete(logPathToClear);
+        }
+    }
+
+    [GeneratedRegex(@"\\[\w\d]+-[\w\d]+-(\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).log")]
+    private static partial Regex LogFileNameRegex();
 }

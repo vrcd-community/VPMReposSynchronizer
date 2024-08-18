@@ -43,6 +43,11 @@ public class RepoSyncTaskScheduleService(
                 schedule, $"repo-sync-{repo.Id}");
         }
 
+        var clearExpiredLogSchedule =
+            new Schedule(RepoSyncTaskService.CleanupExpiredLogFiles, s => s.Every(TimeSpan.FromHours(1)));
+
+        fluentSchedulerService.AddSchedule("Clean Expired Logs", clearExpiredLogSchedule);
+
         logger.LogInformation("All tasks scheduled");
     }
 
