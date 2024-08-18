@@ -203,60 +203,52 @@ public class RepoSynchronizerService(
     private async ValueTask<string> DownloadAndUploadFileAsync(string url, string fileName, ILogger taskLogger,
         string? hash)
     {
-        try
+        var tempFileName = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        await using var stream = await httpClient.GetStreamAsync(url);
+        await using var tempFileStream = File.Create(tempFileName);
+        await stream.CopyToAsync(tempFileStream);
+
+        tempFileStream.Close();
+
+        taskLogger.LogInformation("Downloaded {FileName} From {Url}", fileName, url);
+
+        var fileHash = await FileUtils.HashFile(tempFileName);
+
+        taskLogger.LogInformation("Downloaded {FileName} Hash: {FileHash}", fileName, fileHash);
+        if (hash is not null)
         {
-            var tempFileName = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            await using var stream = await httpClient.GetStreamAsync(url);
-            await using var tempFileStream = File.Create(tempFileName);
-            await stream.CopyToAsync(tempFileStream);
-
-            tempFileStream.Close();
-
-            taskLogger.LogInformation("Downloaded {FileName} From {Url}", fileName, url);
-
-            var fileHash = await FileUtils.HashFile(tempFileName);
-
-            taskLogger.LogInformation("Downloaded {FileName} Hash: {FileHash}", fileName, fileHash);
-            if (hash is not null)
+            if (fileHash != hash)
             {
-                if (fileHash != hash)
-                {
-                    taskLogger.LogError(
-                        "Downloaded File Hash is not match with Provided Hash, the file may be corrupted, Expected: {ExpectedHash}, Actual: {ActualHash}",
-                        hash, fileHash);
+                taskLogger.LogError(
+                    "Downloaded File Hash is not match with Provided Hash, the file may be corrupted, Expected: {ExpectedHash}, Actual: {ActualHash}",
+                    hash, fileHash);
 
-                    File.Delete(tempFileName);
-                    throw new InvalidOperationException("Downloaded File Hash is not match with Provided Hash");
-                }
-
-                taskLogger.LogInformation("Downloaded File Hash Match with Provided Hash, Continue Upload");
-            }
-            else
-            {
-                taskLogger.LogInformation("No Hash Provided, Skip Hash Check");
+                File.Delete(tempFileName);
+                throw new InvalidOperationException("Downloaded File Hash is not match with Provided Hash");
             }
 
-            if (await fileHostService.LookupFileByHashAsync(fileHash) is not { } fileRecordId)
-            {
-                taskLogger.LogInformation(
-                    "Uploading {FileName} to File Host Service", fileName);
-                var fileId = await fileHostService.UploadFileAsync(tempFileName, fileName);
-                taskLogger.LogInformation("Uploaded {FileName} to File Host Service", fileName);
+            taskLogger.LogInformation("Downloaded File Hash Match with Provided Hash, Continue Upload");
+        }
+        else
+        {
+            taskLogger.LogInformation("No Hash Provided, Skip Hash Check");
+        }
 
-                return fileId;
-            }
-
+        if (await fileHostService.LookupFileByHashAsync(fileHash) is not { } fileRecordId)
+        {
             taskLogger.LogInformation(
-                "File is already Uploaded, Skip Upload {FileName}", fileName);
+                "Uploading {FileName} to File Host Service", fileName);
+            var fileId = await fileHostService.UploadFileAsync(tempFileName, fileName);
+            taskLogger.LogInformation("Uploaded {FileName} to File Host Service", fileName);
 
-            File.Delete(tempFileName);
+            return fileId;
+        }
 
-            return fileRecordId;
-        }
-        catch (Exception e)
-        {
-            taskLogger.LogError(e, "Error while Downloading & Uploading {FileName}", fileName);
-            throw;
-        }
+        taskLogger.LogInformation(
+            "File is already Uploaded, Skip Upload {FileName}", fileName);
+
+        File.Delete(tempFileName);
+
+        return fileRecordId;
     }
 }
