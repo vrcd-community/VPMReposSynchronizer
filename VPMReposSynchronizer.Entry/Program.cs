@@ -289,7 +289,7 @@ using (var scope = app.Services.CreateScope())
 
     var dbContext = services.GetRequiredService<DefaultDbContext>();
 
-    dbContext.Database.EnsureCreated();
+    await dbContext.Database.EnsureCreatedAsync();
 }
 
 app.UseOutputCache();
@@ -357,6 +357,6 @@ app.MapGet("/api-docs", () => Results.Content(
     "text/html"
 ));
 
-app.Run();
+await app.RunAsync();
 
 #endregion
