@@ -8,6 +8,7 @@ namespace VPMReposSynchronizer.Core.Services.RepoSync;
 public class RepoSyncTaskScheduleService(
     IServiceScopeFactory serviceScopeFactory,
     FluentSchedulerService fluentSchedulerService,
+    RepoSyncTaskDispatchService repoSyncTaskDispatchService,
     ILogger<RepoSyncTaskScheduleService> logger)
 {
     public async Task ScheduleAllTasks()
@@ -33,10 +34,7 @@ public class RepoSyncTaskScheduleService(
 
             var schedule = new Schedule(async () =>
             {
-                using var jobScope = serviceScopeFactory.CreateScope();
-                var repoSynchronizerService = jobScope.ServiceProvider.GetRequiredService<RepoSynchronizerService>();
-
-                await repoSynchronizerService.StartSync(repo.Id);
+                await repoSyncTaskDispatchService.StartNewSyncTask(repo.Id);
             }, repo.SyncTaskCron);
 
             fluentSchedulerService.AddSchedule($"Sync Repos {repo.Id} ({repo.SyncTaskCron}): {repo.UpStreamUrl}",
@@ -65,8 +63,6 @@ public class RepoSyncTaskScheduleService(
         if (latestSyncTask is not null && latestSyncTask.Status == SyncTaskStatus.Running)
             throw new InvalidOperationException("There is already a sync task is running for this repo");
 
-        var repoSynchronizerService = serviceProvider.GetRequiredService<RepoSynchronizerService>();
-
         schedulePair.Item2.Stop();
 
         _ = Task.Run(async () =>
@@ -75,7 +71,7 @@ public class RepoSyncTaskScheduleService(
 
             try
             {
-                await repoSynchronizerService.StartSync(repoId);
+                await repoSyncTaskDispatchService.StartNewSyncTask(repoId);
             }
             finally
             {

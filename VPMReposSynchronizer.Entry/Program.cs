@@ -100,6 +100,9 @@ builder.Services.Configure<FileHostServiceOptions>(builder.Configuration.GetSect
 builder.Services.Configure<LocalFileHostOptions>(builder.Configuration.GetSection("LocalFileHost"));
 builder.Services.Configure<S3FileHostServiceOptions>(builder.Configuration.GetSection("S3FileHost"));
 
+
+builder.Services.Configure<SyncOptions>(builder.Configuration.GetSection("Sync"));
+
 #endregion
 
 #region DataBase & Mapper
@@ -146,6 +149,7 @@ builder.Services.AddTransient<RepoSynchronizerService>();
 builder.Services.AddTransient<RepoBrowserService>();
 builder.Services.AddTransient<RepoSyncTaskService>();
 builder.Services.AddTransient<RepoSyncStatusService>();
+builder.Services.AddSingleton<RepoSyncTaskDispatchService>();
 
 builder.Services.AddHostedService<RepoSynchronizerHostService>();
 builder.Services.AddSingleton<RepoSyncTaskScheduleService>();

@@ -32,12 +32,19 @@ public class RepoSynchronizerService(
         " {@m}" +
         "\n{@x}";
 
-    public async Task StartSync(string repoId)
+    public async Task StartSync(long taskId)
     {
+        var task = await repoSyncTaskService.GetSyncTaskAsync(taskId);
+
+        if (task is null)
+        {
+            throw new InvalidOperationException("Task not found");
+        }
+
+        var repoId = task.RepoId;
+
         var repo = await repoMetaDataService.GetRepoById(repoId);
         if (repo is null) throw new InvalidOperationException($"Repo with id {repoId} not found");
-
-        var taskId = await repoSyncTaskService.AddSyncTaskAsync(repoId, "");
 
         var logPath = Path.Combine(SyncTaskLoggerPath,
             repoId, $"{taskId}-{repoId}-{DateTimeOffset.Now:yyyy-MM-dd-HH-mm-ss}.log");
@@ -50,18 +57,13 @@ public class RepoSynchronizerService(
         {
             var stopWatch = Stopwatch.StartNew();
 
-            await using var transaction = await defaultDbContext.Database.BeginTransactionAsync();
-
             try
             {
                 await StartSyncInternal(repo.UpStreamUrl, repo.Id, taskLogger);
-
-                await transaction.CommitAsync();
             }
             catch (Exception e)
             {
                 taskLogger.LogError(e, "Error while Syncing Repo {RepoId}", repoId);
-                await transaction.RollbackAsync();
 
                 await repoSyncTaskService.UpdateSyncTaskAsync(taskId, DateTimeOffset.Now, SyncTaskStatus.Failed);
                 return;
