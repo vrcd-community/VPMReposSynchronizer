@@ -8,6 +8,8 @@ COPY ["VPMReposSynchronizer.Entry/VPMReposSynchronizer.Entry.csproj", "VPMReposS
 RUN dotnet restore "VPMReposSynchronizer.Entry/VPMReposSynchronizer.Entry.csproj"
 COPY ["VPMReposSynchronizer.Core/VPMReposSynchronizer.Core.csproj", "VPMReposSynchronizer.Core/"]
 RUN dotnet restore "VPMReposSynchronizer.Core/VPMReposSynchronizer.Core.csproj"
+COPY ["FluentScheduler/FluentScheduler/FluentScheduler.csproj", "/FluentScheduler/FluentScheduler/"]
+RUN dotnet restore "FluentScheduler/FluentScheduler/FluentScheduler.csproj"
 COPY . .
 
 RUN apt-get update && apt-get install -y git
