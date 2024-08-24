@@ -85,6 +85,20 @@ public class RepoMetaDataService(
         await repoSyncTaskScheduleService.ScheduleAllTasks();
     }
 
+    public async Task UpdateRepoAsync(string id, VpmRepo vpmRepo)
+    {
+        var entity = await GetRepoById(id);
+
+        if (entity is null)
+            throw new InvalidOperationException("Repo not found.");
+
+        entity.OriginalRepoId = vpmRepo.Id;
+        entity.Name = vpmRepo.Name;
+        entity.Author = vpmRepo.Author;
+
+        await UpdateRepoAsync(entity);
+    }
+
     public async Task UpdateRepoAsync(VpmRepoEntity vpmRepoEntity)
     {
         defaultDbContext.Repos.Update(vpmRepoEntity);

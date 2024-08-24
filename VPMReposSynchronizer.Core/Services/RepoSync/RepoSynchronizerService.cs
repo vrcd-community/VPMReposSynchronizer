@@ -83,6 +83,9 @@ public class RepoSynchronizerService(
         // Fetch Repo MetaData
         var repo = await FetchRepoAsync(sourceRepoUrl);
 
+        // Update Repo MetaData
+        await repoMetaDataService.UpdateRepoAsync(sourceRepoId, repo);
+
         // Count Packages
         var packagesCount = repo.Packages
             .SelectMany(package =>

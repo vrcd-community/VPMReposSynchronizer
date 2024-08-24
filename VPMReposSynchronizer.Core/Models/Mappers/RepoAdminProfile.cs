@@ -9,6 +9,6 @@ public class RepoAdminProfile : Profile
     public RepoAdminProfile()
     {
         CreateMap<RepoAdminUpdateDto, VpmRepoEntity>()
-            .ForMember(dest => dest.RepoId, opt => opt.MapFrom(src => src.ApiId));
+            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.ApiId));
     }
 }

@@ -10,6 +10,6 @@ public class RepoBrowserProfile : Profile
     {
         CreateMap<VpmRepoEntity, BrowserRepo>()
             .ForMember(dest => dest.ApiId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.UpstreamId, opt => opt.MapFrom(src => src.RepoId));
+            .ForMember(dest => dest.UpstreamId, opt => opt.MapFrom(src => src.OriginalRepoId));
     }
 }
