@@ -17,16 +17,18 @@ public class RepoSyncTaskDispatchService(IServiceScopeFactory serviceScopeFactor
         var taskId = await repoSyncTaskService.AddSyncTaskAsync(repoId, "");
 
         using var cancellationTokenSource = new CancellationTokenSource();
-        var task = Task.Run(async () => await Task.Delay(Timeout.Infinite), cancellationTokenSource.Token);
+        // ReSharper disable once MethodSupportsCancellation
+        var task = Task.Run(() => Task.Delay(Timeout.Infinite), cancellationTokenSource.Token);
 
         _currentTasks.Add(task);
 
         if (_currentTasks.Count > options.Value.MaxConcurrentTasks)
         {
-            var lastTask = _currentTasks[^1];
+            var lastTask = _currentTasks[^2];
             try
             {
-                lastTask.GetAwaiter().GetResult();
+                // ReSharper disable once MethodSupportsCancellation
+                await lastTask.WaitAsync(Timeout.InfiniteTimeSpan);
             }
             catch (TaskCanceledException)
             {
