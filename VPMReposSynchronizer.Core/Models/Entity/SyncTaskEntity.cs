@@ -22,5 +22,6 @@ public enum SyncTaskStatus
     Running,
     Completed,
     Failed,
-    Interrupted
+    Interrupted,
+    Pending
 }

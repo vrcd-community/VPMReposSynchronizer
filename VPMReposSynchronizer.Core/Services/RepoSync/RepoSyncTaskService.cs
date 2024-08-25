@@ -9,7 +9,7 @@ namespace VPMReposSynchronizer.Core.Services.RepoSync;
 public partial class RepoSyncTaskService(DefaultDbContext defaultDbContext)
 {
     public async ValueTask<long> AddSyncTaskAsync(string repoId, string logPath,
-        SyncTaskStatus status = SyncTaskStatus.Running)
+        SyncTaskStatus status = SyncTaskStatus.Pending)
     {
         var syncTaskEntity = new SyncTaskEntity
         {
@@ -26,13 +26,14 @@ public partial class RepoSyncTaskService(DefaultDbContext defaultDbContext)
         return entity.Entity.Id;
     }
 
-    public async Task UpdateSyncTaskAsync(long id, string logPath)
+    public async Task UpdateSyncTaskAsync(long id, string logPath, SyncTaskStatus status = SyncTaskStatus.Running)
     {
         var syncTaskEntity = await defaultDbContext.SyncTasks.FindAsync(id);
 
         if (syncTaskEntity is null) throw new InvalidOperationException($"Sync task with id {id} not found");
 
         syncTaskEntity.LogPath = logPath;
+        syncTaskEntity.Status = status;
 
         await UpdateSyncTaskAsync(syncTaskEntity);
     }
