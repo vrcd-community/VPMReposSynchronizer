@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VPMReposSynchronizer.Core.Models.Types;
+using VPMReposSynchronizer.Core.Services;
 using VPMReposSynchronizer.Core.Services.RepoSync;
 
 namespace VPMReposSynchronizer.Entry.Controllers;
@@ -9,7 +11,11 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [ApiController]
 [Route("syncTasks")]
 [Produces("application/json")]
-public class SyncTaskController(RepoSyncTaskService repoSyncTaskService, IMapper mapper) : ControllerBase
+public class SyncTaskController(
+    RepoSyncTaskService repoSyncTaskService,
+    RepoMetaDataService repoMetaDataService,
+    RepoSyncTaskScheduleService repoSyncTaskScheduleService,
+    IMapper mapper) : ControllerBase
 {
     [HttpGet]
     public async Task<SyncTaskPublic[]> Index([Range(0, int.MaxValue)] int offset = 0, [Range(1, 100)] int limit = 20)
@@ -17,6 +23,18 @@ public class SyncTaskController(RepoSyncTaskService repoSyncTaskService, IMapper
         var syncTasks = await repoSyncTaskService.GetSyncTasksAsync(offset, limit);
 
         return mapper.Map<SyncTaskPublic[]>(syncTasks);
+    }
+
+    [HttpPost("{repoId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
+    public async Task<IActionResult> CreateSyncTask(string repoId)
+    {
+        if (!await repoMetaDataService.IsRepoExist(repoId)) return NotFound();
+
+        await repoSyncTaskScheduleService.InvokeSyncTaskAsync(repoId);
+        return NoContent();
     }
 
     [HttpGet]

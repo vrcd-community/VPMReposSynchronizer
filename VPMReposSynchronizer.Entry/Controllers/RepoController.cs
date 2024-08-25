@@ -6,7 +6,6 @@ using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types.RepoAdmin;
 using VPMReposSynchronizer.Core.Models.Types.RepoBrowser;
 using VPMReposSynchronizer.Core.Services;
-using VPMReposSynchronizer.Core.Services.RepoSync;
 
 namespace VPMReposSynchronizer.Entry.Controllers;
 
@@ -16,7 +15,6 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 public class RepoController(
     RepoBrowserService repoBrowserService,
     RepoMetaDataService repoMetaDataService,
-    RepoSyncTaskScheduleService repoSyncTaskScheduleService,
     IMapper mapper) : ControllerBase
 {
     [Route("")]
@@ -74,18 +72,6 @@ public class RepoController(
 
         await repoMetaDataService.DeleteRepoAsync(id);
 
-        return NoContent();
-    }
-
-    [HttpPost("{id}/sync")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
-    public async Task<IActionResult> Sync(string id)
-    {
-        if (!await repoMetaDataService.IsRepoExist(id)) return NotFound();
-
-        await repoSyncTaskScheduleService.InvokeSyncTaskAsync(id);
         return NoContent();
     }
 
