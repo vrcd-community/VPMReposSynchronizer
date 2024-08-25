@@ -96,7 +96,7 @@ public class RepoMetaDataService(
         entity.Name = vpmRepo.Name;
         entity.Author = vpmRepo.Author;
 
-        await UpdateRepoAsync(entity);
+        await defaultDbContext.SaveChangesAsync();
     }
 
     public async Task UpdateRepoAsync(VpmRepoEntity vpmRepoEntity)
