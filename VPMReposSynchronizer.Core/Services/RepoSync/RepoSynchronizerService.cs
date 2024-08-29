@@ -144,15 +144,7 @@ public class RepoSynchronizerService(
 
         if (await repoMetaDataService.GetVpmPackage(package.Name, package.Version, sourceRepoId) is not { } packageEntity)
         {
-            if (sha256 is null || await fileHostService.LookupFileByHashAsync(sha256) is not { } fileId)
-                return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger, sha256);
-
-            taskLogger.LogInformation(
-                "File with same ZipSha256 is already Downloaded & Uploaded, Skip Download {PackageName}@{PackageVersion}",
-                package.Name,
-                package.Version);
-
-            return fileId;
+            return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger, sha256);
         }
 
         if (!await fileHostService.IsFileExist(packageEntity.FileId))
