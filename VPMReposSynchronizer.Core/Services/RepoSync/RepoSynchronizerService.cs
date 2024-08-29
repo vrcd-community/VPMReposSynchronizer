@@ -184,10 +184,14 @@ public class RepoSynchronizerService(
         }
 
         if (packageEntity.ZipSha256 != sha256)
-            taskLogger.LogWarning(
+        {
+            taskLogger.LogError(
                 "Package {PackageName}@{PackageVersion} have different ZipSha256 compare with exist package MeatData, " +
-                "we will overwrite the exist one with remote one, Exist: {ExistSha256}, Remote: {RemoteSha256}",
+                "Exist: {ExistSha256}, Remote: {RemoteSha256}",
                 package.Name, package.Version, packageEntity.ZipSha256, package.ZipSha256);
+
+            throw new InvalidOperationException("Package ZipSha256 is not match with exist package MeatData");
+        }
 
         taskLogger.LogInformation(
             "Start Downloading {PackageName}@{PackageVersion}@{SourceRepoId}: {PackageUrl}",
