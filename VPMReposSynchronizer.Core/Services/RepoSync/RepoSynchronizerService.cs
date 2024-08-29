@@ -141,8 +141,19 @@ public class RepoSynchronizerService(
                 "Package {PackageName}@{PackageVersion} have not ZipSha256, we will download it anyway if it's not downloaded before",
                 package.Name, package.Version);
 
+        if (sha256 is not null && await fileHostService.LookupFileByHashAsync(sha256) is {} fileId)
+        {
+            taskLogger.LogInformation("Package {PackageName}@{PackageVersion} is already Downloaded & Uploaded, Skip Download",
+                package.Name, package.Version);
+
+            return fileId;
+        }
+
         if (await repoMetaDataService.GetVpmPackage(package.Name, package.Version, sourceRepoId) is not { } packageEntity)
         {
+            taskLogger.LogInformation("Package {PackageName}@{PackageVersion} is not exist in DataBase, Start Downloading",
+                package.Name, package.Version);
+
             return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger, sha256);
         }
 
