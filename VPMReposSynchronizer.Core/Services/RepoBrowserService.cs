@@ -25,7 +25,9 @@ public class RepoBrowserService(
         var browserRepos = mapper.Map<BrowserRepo[]>(repoEntities);
         foreach (var browserRepo in browserRepos)
         {
-            browserRepo.SyncStatus = repoSyncStatuses[browserRepo.ApiId];
+            browserRepo.SyncStatus = repoSyncStatuses.TryGetValue(browserRepo.ApiId, out var syncStatus)
+                ? syncStatus
+                : null;
             browserRepo.RepoUrl = GetRepoUrl(browserRepo.UpstreamId);
         }
 
