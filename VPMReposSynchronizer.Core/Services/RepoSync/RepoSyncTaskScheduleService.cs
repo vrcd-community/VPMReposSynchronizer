@@ -60,7 +60,7 @@ public class RepoSyncTaskScheduleService(
         var repoSyncTaskService = serviceProvider.GetRequiredService<RepoSyncTaskService>();
         var latestSyncTask = await repoSyncTaskService.GetLatestSyncTaskAsync(repoId);
 
-        if (latestSyncTask is not null && latestSyncTask.Status == SyncTaskStatus.Running)
+        if (latestSyncTask?.Status is SyncTaskStatus.Running or SyncTaskStatus.Pending)
             throw new InvalidOperationException("There is already a sync task is running for this repo");
 
         schedulePair.Item2.Stop();

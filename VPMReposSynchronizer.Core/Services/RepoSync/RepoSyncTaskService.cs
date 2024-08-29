@@ -61,7 +61,7 @@ public partial class RepoSyncTaskService(DefaultDbContext defaultDbContext)
         var currentDateTime = DateTimeOffset.Now;
 
         await defaultDbContext.SyncTasks
-            .Where(task => task.Status == SyncTaskStatus.Running)
+            .Where(task => task.Status == SyncTaskStatus.Running || task.Status == SyncTaskStatus.Pending)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(task => task.Status, status => SyncTaskStatus.Interrupted)
                 .SetProperty(task => task.EndTime, endTime => currentDateTime));
