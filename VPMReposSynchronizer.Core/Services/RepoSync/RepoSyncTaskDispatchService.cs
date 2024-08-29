@@ -17,8 +17,7 @@ public class RepoSyncTaskDispatchService(IServiceScopeFactory serviceScopeFactor
         var taskId = await repoSyncTaskService.AddSyncTaskAsync(repoId, "");
 
         using var cancellationTokenSource = new CancellationTokenSource();
-        // ReSharper disable once MethodSupportsCancellation
-        var task = Task.Run(() => Task.Delay(Timeout.Infinite), cancellationTokenSource.Token);
+        var task = Task.Delay(Timeout.Infinite, cancellationTokenSource.Token);
 
         _currentTasks.Add(task);
 
