@@ -111,7 +111,7 @@ public class RepoBrowserService(
         var vpmPackage = mapper.Map<VpmPackage>(package);
 
         var fileDownloadEndpoint = new Uri(fileHostOptions.Value.BaseUrl,
-            $"files/{package.FileId}/download/{package.PackageId}.zip").ToString();
+            $"files/download/{package.PackageId}.zip").ToString();
         vpmPackage.Url = QueryHelpers.AddQueryString(fileDownloadEndpoint, "fileId", package.FileId);
 
         return vpmPackage;
