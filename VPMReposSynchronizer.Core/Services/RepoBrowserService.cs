@@ -28,7 +28,7 @@ public class RepoBrowserService(
             browserRepo.SyncStatus = repoSyncStatuses.TryGetValue(browserRepo.ApiId, out var syncStatus)
                 ? syncStatus
                 : null;
-            browserRepo.RepoUrl = GetRepoUrl(browserRepo.UpstreamId);
+            browserRepo.RepoUrl = GetRepoUrl(browserRepo.ApiId);
         }
 
         return browserRepos;
