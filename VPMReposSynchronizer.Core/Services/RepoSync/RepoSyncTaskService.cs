@@ -67,9 +67,10 @@ public partial class RepoSyncTaskService(DefaultDbContext defaultDbContext)
                 .SetProperty(task => task.EndTime, endTime => currentDateTime));
     }
 
-    public async ValueTask<SyncTaskEntity[]> GetSyncTasksAsync(int offset = 0, int limit = 20)
+    public async ValueTask<SyncTaskEntity[]> GetSyncTasksAsync(int offset = 0, int limit = 20, string? repoId = null)
     {
         return await defaultDbContext.SyncTasks
+            .Where(task => repoId == null || task.RepoId == repoId)
             .OrderByDescending(task => task.Id)
             .Skip(offset)
             .Take(limit)

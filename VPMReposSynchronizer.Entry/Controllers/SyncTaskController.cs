@@ -18,9 +18,9 @@ public class SyncTaskController(
     IMapper mapper) : ControllerBase
 {
     [HttpGet]
-    public async Task<SyncTaskPublic[]> Index([Range(0, int.MaxValue)] int offset = 0, [Range(1, 100)] int limit = 20)
+    public async Task<SyncTaskPublic[]> Index([Range(0, int.MaxValue)] int offset = 0, [Range(1, 100)] int limit = 20, string? repoId = null)
     {
-        var syncTasks = await repoSyncTaskService.GetSyncTasksAsync(offset, limit);
+        var syncTasks = await repoSyncTaskService.GetSyncTasksAsync(offset, limit, repoId);
 
         return mapper.Map<SyncTaskPublic[]>(syncTasks);
     }
