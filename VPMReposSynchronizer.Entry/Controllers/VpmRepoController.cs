@@ -136,7 +136,7 @@ public class VpmRepoController(
 
         var fileDownloadEndpoint = new Uri(fileHostOptions.Value.BaseUrl,
             $"files/download/{package.PackageId}.zip").ToString();
-        vpmPackage.Url = QueryHelpers.AddQueryString(fileDownloadEndpoint, "fileId", package.FileId); ;
+        vpmPackage.Url = QueryHelpers.AddQueryString(fileDownloadEndpoint, "fileId", package.FileId);
 
         return vpmPackage;
     }
