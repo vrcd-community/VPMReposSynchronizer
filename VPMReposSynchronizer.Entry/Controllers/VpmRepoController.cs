@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Semver;
 using VPMReposSynchronizer.Core.Models.Entity;
@@ -134,8 +135,8 @@ public class VpmRepoController(
         var vpmPackage = mapper.Map<VpmPackage>(package);
 
         var fileDownloadEndpoint = new Uri(fileHostOptions.Value.BaseUrl,
-            $"files/{package.FileId}/download/{package.PackageId}.zip").ToString();
-        vpmPackage.Url = fileDownloadEndpoint;
+            $"files/download/{package.PackageId}.zip").ToString();
+        vpmPackage.Url = QueryHelpers.AddQueryString(fileDownloadEndpoint, "fileId", package.FileId);
 
         return vpmPackage;
     }
