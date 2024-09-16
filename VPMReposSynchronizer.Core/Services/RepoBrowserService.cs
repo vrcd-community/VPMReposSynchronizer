@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Semver;
+using VPMReposSynchronizer.Core.Extensions;
 using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Models.Types.RepoBrowser;
@@ -16,9 +17,9 @@ public class RepoBrowserService(
     IOptions<FileHostServiceOptions> fileHostOptions,
     IMapper mapper)
 {
-    public async ValueTask<BrowserRepo[]> GetAllReposAsync()
+    public async ValueTask<PageResult<BrowserRepo>> GetReposAsync(int page, int count)
     {
-        var repoEntities = await repoMetaDataService.GetAllRepos();
+        var repoEntities = await repoMetaDataService.GetRepos();
         var repoSyncStatuses = (await repoSyncStatusService.GetAllSyncStatusAsync())
             .ToDictionary(status => status.RepoId, status => status);
 
@@ -31,21 +32,27 @@ public class RepoBrowserService(
             browserRepo.RepoUrl = GetRepoUrl(browserRepo.ApiId);
         }
 
-        return browserRepos;
+        return browserRepos.ToPageResult(page, count);
     }
 
-    public async ValueTask<BrowserPackage[]?> GetAllPackagesAsync(string repoId)
+    public async ValueTask<PageResult<BrowserPackage>> GetPackagesAsync(string repoId, int count, int page)
     {
         var packageEntities = await repoMetaDataService.GetVpmPackages(repoId);
-        var packages = packageEntities
+        var packageGroups = packageEntities
             .Select(GetPackageWithUrl)
             .GroupBy(package => package.Name)
-            .Select(package => package.OrderByDescending(pkg => pkg.Version, SemVersion.SortOrderComparer))
+            .ToArray();
+
+        var packages = packageGroups
+            .Skip(page * count)
+            .Take(count)
+            .Select(package => package.OrderByDescending(pkg => SemVersion.Parse(pkg.Version, SemVersionStyles.Any),
+                SemVersion.SortOrderComparer))
             .Select(packagesGroup =>
                 new BrowserPackage(packagesGroup.First(), packagesGroup.ToArray(), repoId,
                     GetRepoUrl(repoId)));
 
-        return packages.ToArray();
+        return new PageResult<BrowserPackage>(packages.ToArray(), packageGroups.Length);
     }
 
     public async ValueTask<BrowserPackage[]> SearchVpmPackages(string keyword)

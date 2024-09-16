@@ -42,7 +42,7 @@ public class VpmRepoController(
     [ProducesResponseType<Dictionary<string, string>>(StatusCodes.Status200OK)]
     public async Task<Dictionary<string, string>> GetRepoLists()
     {
-        var repos = await repoMetaDataService.GetAllRepos();
+        var repos = await repoMetaDataService.GetRepos();
         return repos.Select(repo => new KeyValuePair<string, string>(repo.Id, repo.UpStreamUrl)).ToDictionary();
     }
 

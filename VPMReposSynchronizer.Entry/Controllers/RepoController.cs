@@ -1,8 +1,10 @@
-﻿using AutoMapper;
+﻿using System.ComponentModel.DataAnnotations;
+using AutoMapper;
 using Cronos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VPMReposSynchronizer.Core.Models.Entity;
+using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Models.Types.RepoAdmin;
 using VPMReposSynchronizer.Core.Models.Types.RepoBrowser;
 using VPMReposSynchronizer.Core.Services;
@@ -19,10 +21,10 @@ public class RepoController(
 {
     [Route("")]
     [HttpGet]
-    [ProducesResponseType<BrowserRepo[]>(StatusCodes.Status200OK)]
-    public async Task<BrowserRepo[]> GetAllRepos()
+    [ProducesResponseType<PageResult<BrowserRepo>>(StatusCodes.Status200OK)]
+    public async Task<PageResult<BrowserRepo>> GetRepos([Range(0, int.MaxValue)] int page = 0,[Range(0, 50)] int count = 10)
     {
-        return await repoBrowserService.GetAllReposAsync();
+        return await repoBrowserService.GetReposAsync(page, count);
     }
 
     [HttpPost]
@@ -90,13 +92,13 @@ public class RepoController(
 
     [Route("{repoId}/packages")]
     [HttpGet]
-    [ProducesResponseType<BrowserPackage[]>(StatusCodes.Status200OK)]
+    [ProducesResponseType<PageResult<BrowserPackage>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetAllPackage(string repoId)
+    public async Task<ActionResult<PageResult<BrowserPackage>>> GetAllPackage(string repoId, [Range(0, int.MaxValue)] int page = 0, [Range(0, 50)] int count = 10)
     {
         if (await repoBrowserService.GetRepoAsync(repoId) is null) return NotFound();
 
-        var packages = await repoBrowserService.GetAllPackagesAsync(repoId);
+        var packages = await repoBrowserService.GetPackagesAsync(repoId, count, page);
 
         return Ok(packages);
     }

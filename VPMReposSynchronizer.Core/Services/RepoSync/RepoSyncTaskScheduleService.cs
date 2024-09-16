@@ -26,7 +26,7 @@ public class RepoSyncTaskScheduleService(
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         var repoMetaDataService = scope.ServiceProvider.GetRequiredService<RepoMetaDataService>();
 
-        var repos = await repoMetaDataService.GetAllRepos();
+        var repos = await repoMetaDataService.GetRepos();
 
         foreach (var repo in repos)
         {

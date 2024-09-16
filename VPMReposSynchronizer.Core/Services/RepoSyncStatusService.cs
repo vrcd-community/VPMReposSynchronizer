@@ -9,7 +9,7 @@ public class RepoSyncStatusService(RepoMetaDataService repoMetaDataService, Repo
     {
         var latestSyncTasks = await repoSyncTaskService.GetAllLatestSyncTasksAsync();
 
-        var repoUpstreamUrls = (await repoMetaDataService.GetAllRepos())
+        var repoUpstreamUrls = (await repoMetaDataService.GetRepos())
             .ToDictionary(repo => repo.Id, repo => repo.UpStreamUrl);
 
         return latestSyncTasks

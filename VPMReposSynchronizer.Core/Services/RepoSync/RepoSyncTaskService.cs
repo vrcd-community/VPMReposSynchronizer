@@ -2,7 +2,9 @@
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using VPMReposSynchronizer.Core.DbContexts;
+using VPMReposSynchronizer.Core.Extensions;
 using VPMReposSynchronizer.Core.Models.Entity;
+using VPMReposSynchronizer.Core.Models.Types;
 
 namespace VPMReposSynchronizer.Core.Services.RepoSync;
 
@@ -67,14 +69,12 @@ public partial class RepoSyncTaskService(DefaultDbContext defaultDbContext)
                 .SetProperty(task => task.EndTime, endTime => currentDateTime));
     }
 
-    public async ValueTask<SyncTaskEntity[]> GetSyncTasksAsync(int offset = 0, int limit = 20, string? repoId = null)
+    public async ValueTask<PageResult<SyncTaskEntity>> GetSyncTasksAsync(int page = 0, int count = 20, string? repoId = null)
     {
         return await defaultDbContext.SyncTasks
             .Where(task => repoId == null || task.RepoId == repoId)
             .OrderByDescending(task => task.Id)
-            .Skip(offset)
-            .Take(limit)
-            .ToArrayAsync();
+            .ToPageResultAsync(page, count);
     }
 
     public async ValueTask<SyncTaskEntity?> GetSyncTaskAsync(long id)

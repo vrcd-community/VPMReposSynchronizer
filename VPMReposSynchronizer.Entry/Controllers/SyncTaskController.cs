@@ -18,11 +18,13 @@ public class SyncTaskController(
     IMapper mapper) : ControllerBase
 {
     [HttpGet]
-    public async Task<SyncTaskPublic[]> Index([Range(0, int.MaxValue)] int offset = 0, [Range(1, 100)] int limit = 20, string? repoId = null)
+    public async Task<PageResult<SyncTaskPublic>> Index([Range(0, int.MaxValue)] int page = 0, [Range(1, 100)] int count = 20, string? repoId = null)
     {
-        var syncTasks = await repoSyncTaskService.GetSyncTasksAsync(offset, limit, repoId);
+        var syncTasks = await repoSyncTaskService.GetSyncTasksAsync(page, count, repoId);
 
-        return mapper.Map<SyncTaskPublic[]>(syncTasks);
+        var tasks = mapper.Map<SyncTaskPublic[]>(syncTasks.Items);
+
+        return new PageResult<SyncTaskPublic>(tasks, syncTasks.TotalCount);
     }
 
     [HttpPost("{repoId}")]

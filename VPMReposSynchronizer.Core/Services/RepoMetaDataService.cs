@@ -118,7 +118,7 @@ public class RepoMetaDataService(
         await repoSyncTaskScheduleService.ScheduleAllTasks();
     }
 
-    public async Task<VpmRepoEntity[]> GetAllRepos()
+    public async Task<VpmRepoEntity[]> GetRepos()
     {
         return await defaultDbContext.Repos.ToArrayAsync();
     }
