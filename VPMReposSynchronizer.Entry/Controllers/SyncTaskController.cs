@@ -2,6 +2,7 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Services;
 using VPMReposSynchronizer.Core.Services.RepoSync;
@@ -11,6 +12,7 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [ApiController]
 [Route("syncTasks")]
 [Produces("application/json")]
+[OutputCache(PolicyName = "status")]
 public class SyncTaskController(
     RepoSyncTaskService repoSyncTaskService,
     RepoMetaDataService repoMetaDataService,

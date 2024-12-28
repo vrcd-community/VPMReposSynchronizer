@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Services;
 using VPMReposSynchronizer.Core.Utils;
@@ -34,6 +35,7 @@ public class StatusController(RepoSyncStatusService repoSyncStatusService) : Con
     [Route("sync")]
     [HttpGet]
     [ProducesResponseType<SyncStatusPublic[]>(StatusCodes.Status200OK)]
+    [OutputCache(PolicyName = "status")]
     public async Task<SyncStatusPublic[]> SyncStatus()
     {
         return await repoSyncStatusService.GetAllSyncStatusAsync();

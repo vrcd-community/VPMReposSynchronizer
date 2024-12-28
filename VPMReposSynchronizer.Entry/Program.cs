@@ -225,6 +225,7 @@ builder.Services.AddControllers();
 builder.Services.AddOutputCache(options =>
 {
     options.AddPolicy("vpm", policyBuilder => policyBuilder.Expire(TimeSpan.FromSeconds(10)));
+    options.AddPolicy("status", policyBuilder => policyBuilder.Expire(TimeSpan.FromSeconds(2)));
 });
 
 builder.Services.AddCors(options =>

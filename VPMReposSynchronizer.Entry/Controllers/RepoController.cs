@@ -3,6 +3,7 @@ using AutoMapper;
 using Cronos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using VPMReposSynchronizer.Core.Models.Entity;
 using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Models.Types.RepoAdmin;
@@ -14,6 +15,7 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [ApiController]
 [Route("repos")]
 [Produces("application/json")]
+[OutputCache(PolicyName = "vpm")]
 public class RepoController(
     RepoBrowserService repoBrowserService,
     RepoMetaDataService repoMetaDataService,
