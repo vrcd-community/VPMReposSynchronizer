@@ -7,7 +7,7 @@ riderModule.iml
 
 /VPMReposSynchronizer.Entry/appsettings.Development.json
 
-packages.db
+*.db*
 /VPMReposSynchronizer.Entry/files/
 logs/
 
