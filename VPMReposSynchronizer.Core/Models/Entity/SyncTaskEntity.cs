@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace VPMReposSynchronizer.Core.Models.Entity;
 
+[Index(nameof(Id), nameof(RepoId), nameof(Status))]
 public class SyncTaskEntity
 {
     [Key] public long Id { get; set; }

@@ -69,7 +69,8 @@ public partial class RepoSyncTaskService(DefaultDbContext defaultDbContext)
                 .SetProperty(task => task.EndTime, endTime => currentDateTime));
     }
 
-    public async ValueTask<PageResult<SyncTaskEntity>> GetSyncTasksAsync(int page = 0, int count = 20, string? repoId = null)
+    public async ValueTask<PageResult<SyncTaskEntity>> GetSyncTasksAsync(int page = 0, int count = 20,
+        string? repoId = null)
     {
         return await defaultDbContext.SyncTasks
             .Where(task => repoId == null || task.RepoId == repoId)
@@ -84,10 +85,19 @@ public partial class RepoSyncTaskService(DefaultDbContext defaultDbContext)
 
     public async ValueTask<SyncTaskEntity[]> GetAllLatestSyncTasksAsync()
     {
-        return await defaultDbContext.SyncTasks
-            .GroupBy(task => task.RepoId)
-            .Select(tasks => tasks.OrderByDescending(task => task.Id).First())
-            .ToArrayAsync();
+        var repos = await defaultDbContext.Repos.Select(repo => repo.Id).ToArrayAsync();
+        List<SyncTaskEntity> tasks = [];
+
+        foreach (var repoId in repos)
+        {
+            if (await defaultDbContext.SyncTasks
+                    .OrderByDescending(task => task.Id)
+                    .Where(task => task.RepoId == repoId)
+                    .FirstOrDefaultAsync() is { } taskEntity)
+                tasks.Add(taskEntity);
+        }
+
+        return tasks.ToArray();
     }
 
     public async ValueTask<SyncTaskEntity?> GetLatestSyncTaskAsync(string repoId)
