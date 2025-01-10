@@ -20,6 +20,7 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [Route("vpm")]
 [Produces("application/json")]
 [OutputCache(PolicyName = "vpm")]
+[ResponseCache(Duration = 30)]
 public class VpmRepoController(
     RepoMetaDataService repoMetaDataService,
     IOptions<MirrorRepoMetaDataOptions> options,

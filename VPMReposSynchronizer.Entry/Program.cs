@@ -218,6 +218,8 @@ builder.Services.AddAuthorization(options =>
 
 #endregion
 
+builder.Services.AddResponseCaching();
+
 #region Others
 
 builder.Services.AddControllers();
@@ -313,6 +315,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseCors();
+
+app.UseResponseCaching();
 
 app.UseOutputCache();
 

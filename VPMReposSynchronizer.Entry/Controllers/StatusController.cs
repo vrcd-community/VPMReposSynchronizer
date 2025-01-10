@@ -12,6 +12,8 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [ApiController]
 [Route("status")]
 [Produces("application/json")]
+[OutputCache(PolicyName = "status")]
+[ResponseCache(Duration = 10)]
 public class StatusController(RepoSyncStatusService repoSyncStatusService) : ControllerBase
 {
     /// <summary>

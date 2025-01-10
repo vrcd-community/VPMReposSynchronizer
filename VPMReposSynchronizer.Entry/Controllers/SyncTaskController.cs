@@ -13,6 +13,7 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [Route("syncTasks")]
 [Produces("application/json")]
 [OutputCache(PolicyName = "status")]
+[ResponseCache(Duration = 10)]
 public class SyncTaskController(
     RepoSyncTaskService repoSyncTaskService,
     RepoMetaDataService repoMetaDataService,
