@@ -283,8 +283,6 @@ using (var scope = app.Services.CreateScope())
     await dbContext.Database.EnsureCreatedAsync();
 }
 
-app.UseOutputCache();
-
 if (fileHostServiceOptions.FileHostServiceType == FileHostServiceType.LocalFileHost)
 {
     var filesPath = builder.Configuration.GetSection("LocalFileHost")["FilesPath"] ??
@@ -315,6 +313,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseCors();
+
+app.UseOutputCache();
 
 if (fileHostServiceOptions.EnableRateLimit) app.UseRateLimiter();
 
