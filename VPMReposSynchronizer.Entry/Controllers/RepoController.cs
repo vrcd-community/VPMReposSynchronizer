@@ -16,7 +16,6 @@ namespace VPMReposSynchronizer.Entry.Controllers;
 [Route("repos")]
 [Produces("application/json")]
 [OutputCache(PolicyName = "vpm")]
-[ResponseCache(Duration = 30)]
 public class RepoController(
     RepoBrowserService repoBrowserService,
     RepoMetaDataService repoMetaDataService,
