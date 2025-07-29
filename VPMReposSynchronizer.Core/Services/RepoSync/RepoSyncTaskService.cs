@@ -140,6 +140,6 @@ public partial class RepoSyncTaskService(DefaultDbContext defaultDbContext)
         }
     }
 
-    [GeneratedRegex(@"\\[\w\d]+-[\w\d]+-(\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).log")]
+    [GeneratedRegex(@"[\w\d]+-[\w\d]+-(\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).log")]
     private static partial Regex LogFileNameRegex();
 }
