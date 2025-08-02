@@ -52,10 +52,11 @@ public class RepoController(
     [Authorize(AuthenticationSchemes = "ApiKey", Policy = "ApiKey")]
     public async Task<IActionResult> Update(string id, RepoAdminUpdateDto repo)
     {
-        if (!await repoMetaDataService.IsRepoExist(id)) return NotFound();
+        if (await repoMetaDataService.GetRepoById(id) is not { } repoEntity) return NotFound();
 
-        var repoEntity = mapper.Map<VpmRepoEntity>(repo);
-        repoEntity.Id = id;
+        repoEntity.Description = repo.Description;
+        repoEntity.SyncTaskCron = repo.SyncTaskCron;
+        repoEntity.UpStreamUrl = repo.UpstreamUrl;
 
         if (!Uri.TryCreate(repoEntity.UpStreamUrl, UriKind.Absolute, out _)) return BadRequest("Invalid url.");
 
