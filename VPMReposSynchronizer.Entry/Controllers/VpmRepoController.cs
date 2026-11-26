@@ -26,6 +26,14 @@ public class VpmRepoController(
     IOptions<FileHostServiceOptions> fileHostOptions,
     IMapper mapper) : ControllerBase
 {
+    private static readonly IComparer<SemVersion?> NullLastVersionComparer =
+        Comparer<SemVersion?>.Create((left, right) =>
+        {
+            if (left is null) return right is null ? 0 : -1;
+            if (right is null) return 1;
+            return SemVersion.SortOrderComparer.Compare(left, right);
+        });
+
     /// <summary>
     ///     Get all upstream repos.
     /// </summary>
@@ -114,7 +122,11 @@ public class VpmRepoController(
                 .Select(packageVersions => new KeyValuePair<string, VpmRepoPackageVersions>(
                     packageVersions.First().Value.Name,
                     new VpmRepoPackageVersions(packageVersions
-                        .OrderByDescending(package => package.Value.Version, SemVersion.SortOrderComparer)
+                        // 数据库中的版本字符串来自上游清单，可能存在无法解析的取值，排在末尾且保持原有顺序
+                        .OrderByDescending(package => SemVersion.TryParse(package.Key, SemVersionStyles.Any,
+                            out var version)
+                            ? version
+                            : null, NullLastVersionComparer)
                         .ToDictionary())))
                 .ToDictionary();
 

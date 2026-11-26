@@ -46,8 +46,7 @@ public class RepoBrowserService(
         var packages = packageGroups
             .Skip(page * count)
             .Take(count)
-            .Select(package => package.OrderByDescending(pkg => SemVersion.Parse(pkg.Version, SemVersionStyles.Any),
-                SemVersion.SortOrderComparer))
+            .Select(package => OrderBySemanticVersionDescending(package, pkg => pkg.Version))
             .Select(packagesGroup =>
                 new BrowserPackage(packagesGroup.First(), packagesGroup.ToArray(), repoId,
                     GetRepoUrl(repoId)));
@@ -65,8 +64,8 @@ public class RepoBrowserService(
 
         return packagesGroup.Select((group, index) =>
             {
-                var versions = group.Select(GetPackageWithUrl)
-                    .OrderByDescending(package => package.Version, SemVersion.SortOrderComparer).ToArray();
+                var versions = OrderBySemanticVersionDescending(group.Select(GetPackageWithUrl),
+                    package => package.Version).ToArray();
 
                 return new BrowserPackage(versions[0], versions,
                     packagesGroup[index].Select(pkg => pkg.UpstreamId).First(),
@@ -95,11 +94,11 @@ public class RepoBrowserService(
     {
         var packageEntities = await repoMetaDataService.GetVpmPackages(repoId);
 
-        var packages = packageEntities
-            .Select(GetPackageWithUrl)
-            .Where(package => package.Name == packageName)
-            .Select(package => package)
-            .OrderByDescending(package => package.Version, SemVersion.SortOrderComparer)
+        var packages = OrderBySemanticVersionDescending(
+                packageEntities
+                    .Select(GetPackageWithUrl)
+                    .Where(package => package.Name == packageName),
+                package => package.Version)
             .ToArray();
 
         return packages.Length == 0
@@ -111,6 +110,29 @@ public class RepoBrowserService(
     private string GetRepoUrl(string id)
     {
         return options.Value.RepoUrl.Replace("{id}", id);
+    }
+
+    /// <summary>
+    ///     按语义化版本降序排序。数据库中的版本字符串来自上游清单，可能存在无法解析的取值，
+    ///     无法解析的版本排在末尾，彼此保持原有顺序。
+    /// </summary>
+    internal static List<T> OrderBySemanticVersionDescending<T>(
+        IEnumerable<T> source, Func<T, string> versionSelector)
+    {
+        var parsed = source
+            .Select(item =>
+            {
+                var canParse = SemVersion.TryParse(versionSelector(item), SemVersionStyles.Any, out var version);
+                return (Item: item, Version: canParse ? version : null);
+            })
+            .ToArray();
+
+        return parsed
+            .Where(entry => entry.Version is not null)
+            .OrderByDescending(entry => entry.Version!, SemVersion.SortOrderComparer)
+            .Select(entry => entry.Item)
+            .Concat(parsed.Where(entry => entry.Version is null).Select(entry => entry.Item))
+            .ToList();
     }
 
     private VpmPackage GetPackageWithUrl(VpmPackageEntity package)

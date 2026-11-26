@@ -85,7 +85,15 @@ public class VpmPackageProfile : Profile
 
     private static Dictionary<string, string> ConvertStringToDictionary(string input)
     {
-        return JsonSerializer.Deserialize<Dictionary<string, string>>(input) ?? new Dictionary<string, string>();
+        // 数据库中的值来自上游清单，可能存在无法反序列化的坏值，回退为空字典
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(input) ?? new Dictionary<string, string>();
+        }
+        catch (JsonException)
+        {
+            return new Dictionary<string, string>();
+        }
     }
 
     private static string ConvertDictionaryToString(Dictionary<string, string> input)
@@ -95,7 +103,15 @@ public class VpmPackageProfile : Profile
 
     private static string[] ConvertStringToArray(string input)
     {
-        return JsonSerializer.Deserialize<string[]>(input) ?? Array.Empty<string>();
+        // 数据库中的值可能存放了对象或非数组的 JSON，回退为空数组
+        try
+        {
+            return JsonSerializer.Deserialize<string[]>(input) ?? Array.Empty<string>();
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<string>();
+        }
     }
 
     private static string ConvertArrayToString(string[] input)
@@ -110,6 +126,14 @@ public class VpmPackageProfile : Profile
 
     private static T? ConvertFromJson<T>(string input)
     {
-        return JsonSerializer.Deserialize<T>(input);
+        // 数据库中的值可能无法反序列化为目标类型，回退为默认值
+        try
+        {
+            return JsonSerializer.Deserialize<T>(input);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
     }
 }
