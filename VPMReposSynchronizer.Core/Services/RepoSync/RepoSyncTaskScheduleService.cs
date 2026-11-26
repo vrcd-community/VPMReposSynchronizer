@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using VPMReposSynchronizer.Core.Models.Entity;
+using VPMReposSynchronizer.Core.Utils;
 
 namespace VPMReposSynchronizer.Core.Services.RepoSync;
 
@@ -30,15 +31,30 @@ public class RepoSyncTaskScheduleService(
 
         foreach (var repo in repos)
         {
+            if (!CronScheduleGuard.TryValidate(repo.SyncTaskCron, out var cronError))
+            {
+                logger.LogError("Skip scheduling repo {RepoId} with cron {Cron}: {Reason}", repo.Id,
+                    repo.SyncTaskCron, cronError);
+                continue;
+            }
+
             logger.LogInformation("Adding task for repo {RepoId}", repo.Id);
 
-            var schedule = new Schedule(async () =>
+            try
             {
-                await repoSyncTaskDispatchService.StartNewSyncTask(repo.Id);
-            }, repo.SyncTaskCron);
+                var schedule = new Schedule(async () =>
+                {
+                    await repoSyncTaskDispatchService.StartNewSyncTask(repo.Id);
+                }, repo.SyncTaskCron);
 
-            fluentSchedulerService.AddSchedule($"Sync Repos {repo.Id} ({repo.SyncTaskCron}): {repo.UpStreamUrl}",
-                schedule, $"repo-sync-{repo.Id}");
+                fluentSchedulerService.AddSchedule($"Sync Repos {repo.Id} ({repo.SyncTaskCron}): {repo.UpStreamUrl}",
+                    schedule, $"repo-sync-{repo.Id}");
+            }
+            catch (Exception ex)
+            {
+                // 单个仓库的调度失败不能阻止其他仓库继续调度
+                logger.LogError(ex, "Failed to schedule sync task for repo {RepoId}", repo.Id);
+            }
         }
 
         var clearExpiredLogSchedule =

@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using AutoMapper;
-using Cronos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
@@ -9,6 +8,7 @@ using VPMReposSynchronizer.Core.Models.Types;
 using VPMReposSynchronizer.Core.Models.Types.RepoAdmin;
 using VPMReposSynchronizer.Core.Models.Types.RepoBrowser;
 using VPMReposSynchronizer.Core.Services;
+using VPMReposSynchronizer.Core.Utils;
 
 namespace VPMReposSynchronizer.Entry.Controllers;
 
@@ -39,7 +39,7 @@ public class RepoController(
 
         if (!Uri.TryCreate(repoEntity.UpStreamUrl, UriKind.Absolute, out _)) return BadRequest("Invalid url.");
 
-        if (!CronExpression.TryParse(repoEntity.SyncTaskCron, out _)) return BadRequest("Invalid cron expression.");
+        if (!CronScheduleGuard.TryValidate(repoEntity.SyncTaskCron, out var cronError)) return BadRequest(cronError);
 
         await repoMetaDataService.AddRepoAsync(repoEntity);
         return NoContent();
@@ -60,7 +60,7 @@ public class RepoController(
 
         if (!Uri.TryCreate(repoEntity.UpStreamUrl, UriKind.Absolute, out _)) return BadRequest("Invalid url.");
 
-        if (!CronExpression.TryParse(repoEntity.SyncTaskCron, out _)) return BadRequest("Invalid cron expression.");
+        if (!CronScheduleGuard.TryValidate(repoEntity.SyncTaskCron, out var cronError)) return BadRequest(cronError);
 
         await repoMetaDataService.UpdateRepoAsync(repoEntity);
 
