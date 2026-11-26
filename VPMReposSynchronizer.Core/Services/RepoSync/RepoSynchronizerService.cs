@@ -98,10 +98,21 @@ public class RepoSynchronizerService(
         foreach (var package in repo.Packages.SelectMany(
                      package => package.Value.Versions.Select(version => version.Value)))
         {
-            var fileId = await ProcessPackageFileAsync(package, sourceRepoId, taskLogger);
+            try
+            {
+                var processed = await ProcessPackageFileAsync(package, sourceRepoId, taskLogger);
 
-            await repoMetaDataService.MarkAddOrUpdateVpmPackageAsync(package, fileId, sourceRepoId);
-            taskLogger.LogInformation("Add {PackageName}@{PackageVersion} to DataBase", package.Name, package.Version);
+                await repoMetaDataService.MarkAddOrUpdateVpmPackageAsync(package, processed.FileId, sourceRepoId,
+                    processed.ContentSha256);
+                taskLogger.LogInformation("Add {PackageName}@{PackageVersion} to DataBase", package.Name, package.Version);
+            }
+            catch (PackageSyncException e)
+            {
+                // 只有内容与上游声明的哈希不一致才跳过该版本；数据库或文件存储等其它异常继续向上抛出。
+                taskLogger.LogError(
+                    "Skip {PackageName}@{PackageVersion} and keep the existing record: {Reason}",
+                    package.Name, package.Version, e.Message);
+            }
         }
 
         await defaultDbContext.SaveChangesAsync();
@@ -131,9 +142,15 @@ public class RepoSynchronizerService(
         return repo;
     }
 
-    private async ValueTask<string> ProcessPackageFileAsync(VpmPackage package, string sourceRepoId, ILogger taskLogger)
+    // FileId: 文件存储返回的 id，语义由具体存储决定（本地存储为哈希，S3 为带文件名的 key），不能当作内容哈希使用。
+    // ContentSha256: 应记录到镜像的哈希，即上游声明的值，或上游未声明时对下载内容实算的值。
+    private record struct ProcessedPackageFile(string FileId, string? ContentSha256);
+
+    private async ValueTask<ProcessedPackageFile> ProcessPackageFileAsync(VpmPackage package, string sourceRepoId,
+        ILogger taskLogger)
     {
-        var sha256 = package.ZipSha256;
+        // 空字符串与字段缺失视为同一种情况：上游没有声明哈希。
+        var sha256 = string.IsNullOrEmpty(package.ZipSha256) ? null : package.ZipSha256;
         var fileName = $"{package.Name}@{package.Version}@{sourceRepoId}.zip";
 
         if (sha256 is null)
@@ -146,7 +163,7 @@ public class RepoSynchronizerService(
             taskLogger.LogInformation("Package {PackageName}@{PackageVersion} is already Downloaded & Uploaded, Skip Download",
                 package.Name, package.Version);
 
-            return fileId;
+            return new ProcessedPackageFile(fileId, sha256);
         }
 
         if (await repoMetaDataService.GetVpmPackage(package.Name, package.Version, sourceRepoId) is not { } packageEntity)
@@ -154,7 +171,8 @@ public class RepoSynchronizerService(
             taskLogger.LogInformation("Package {PackageName}@{PackageVersion} is not exist in DataBase, Start Downloading",
                 package.Name, package.Version);
 
-            return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger, sha256);
+            var downloaded = await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger, sha256);
+            return new ProcessedPackageFile(downloaded.FileId, sha256 ?? downloaded.FileHash);
         }
 
         if (!await fileHostService.IsFileExist(packageEntity.FileId))
@@ -170,7 +188,8 @@ public class RepoSynchronizerService(
                 package.Name,
                 package.Version, sourceRepoId, package.Url);
 
-            return await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger, sha256);
+            var downloaded = await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger, sha256);
+            return new ProcessedPackageFile(downloaded.FileId, sha256 ?? downloaded.FileHash);
         }
 
         if (sha256 is null)
@@ -180,7 +199,9 @@ public class RepoSynchronizerService(
                 package.Name,
                 package.Version);
 
-            return packageEntity.FileId;
+            // 复用记录中已有的校验值，避免上游未声明时把之前实算的哈希覆盖掉；
+            // 记录本身也没有哈希（历史数据）时保持为空，不从 fileId 猜测。
+            return new ProcessedPackageFile(packageEntity.FileId, packageEntity.ZipSha256);
         }
 
         if (sha256 == packageEntity.ZipSha256)
@@ -190,17 +211,16 @@ public class RepoSynchronizerService(
                 package.Name,
                 package.Version);
 
-            return packageEntity.FileId;
+            return new ProcessedPackageFile(packageEntity.FileId, sha256);
         }
 
         if (packageEntity.ZipSha256 != sha256)
         {
-            taskLogger.LogError(
+            // 上游为已镜像的同一版本声明了新的哈希：下载新文件并按新哈希校验，通过后才更新记录。
+            taskLogger.LogWarning(
                 "Package {PackageName}@{PackageVersion} have different ZipSha256 compare with exist package MeatData, " +
-                "Exist: {ExistSha256}, Remote: {RemoteSha256}",
-                package.Name, package.Version, packageEntity.ZipSha256, package.ZipSha256);
-
-            throw new InvalidOperationException("Package ZipSha256 is not match with exist package MeatData");
+                "Exist: {ExistSha256}, Remote: {RemoteSha256}, verifying the upstream file before updating",
+                package.Name, package.Version, packageEntity.ZipSha256, sha256);
         }
 
         taskLogger.LogInformation(
@@ -208,11 +228,12 @@ public class RepoSynchronizerService(
             package.Name,
             package.Version, sourceRepoId, package.Url);
 
-        return await DownloadAndUploadFileAsync(package.Url, fileName,
-            taskLogger, sha256);
+        var verified = await DownloadAndUploadFileAsync(package.Url, fileName, taskLogger, sha256);
+        return new ProcessedPackageFile(verified.FileId, sha256 ?? verified.FileHash);
     }
 
-    private async ValueTask<string> DownloadAndUploadFileAsync(string url, string fileName, ILogger taskLogger,
+    private async ValueTask<(string FileId, string FileHash)> DownloadAndUploadFileAsync(string url, string fileName,
+        ILogger taskLogger,
         string? hash)
     {
         var tempFileName = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -236,7 +257,8 @@ public class RepoSynchronizerService(
                     hash, fileHash);
 
                 File.Delete(tempFileName);
-                throw new InvalidOperationException("Downloaded File Hash is not match with Provided Hash");
+                throw new PackageSyncException(
+                    $"Downloaded file hash {fileHash} does not match the declared hash {hash} for {fileName}");
             }
 
             taskLogger.LogInformation("Downloaded File Hash Match with Provided Hash, Continue Upload");
@@ -253,7 +275,7 @@ public class RepoSynchronizerService(
             var fileId = await fileHostService.UploadFileAsync(tempFileName, fileName);
             taskLogger.LogInformation("Uploaded {FileName} to File Host Service", fileName);
 
-            return fileId;
+            return (fileId, fileHash);
         }
 
         taskLogger.LogInformation(
@@ -261,6 +283,6 @@ public class RepoSynchronizerService(
 
         File.Delete(tempFileName);
 
-        return fileRecordId;
+        return (fileRecordId, fileHash);
     }
 }
