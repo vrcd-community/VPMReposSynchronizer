@@ -105,6 +105,23 @@ public class RepoSynchronizerService(
         }
 
         await defaultDbContext.SaveChangesAsync();
+
+        // 清单在 FetchRepoAsync 已校验为显式结构有效的对象，因此空对象即“上游撤回了全部版本”。
+        // 只清本源索引：文件按内容哈希寻址不删除，其它来源的记录不受影响。
+        // 用条目内声明的 name/version：镜像记录正是按它们落库，校验已保证其与清单键一致。
+        var keepPackages = repo.Packages
+            .SelectMany(package => package.Value.Versions
+                .Select(version => (version.Value.Name, version.Value.Version)))
+            .ToHashSet();
+
+        var removedCount = await repoMetaDataService.RemoveVpmPackagesNotInAsync(sourceRepoId, keepPackages);
+        if (removedCount > 0)
+        {
+            taskLogger.LogInformation("Removed {RemovedCount} retracted package versions from {SourceRepoId}",
+                removedCount, sourceRepoId);
+
+            await defaultDbContext.SaveChangesAsync();
+        }
     }
 
     private ILogger<RepoSynchronizerService> GetTaskLogger(ILogger parentLogger, string logPath)
@@ -121,6 +138,10 @@ public class RepoSynchronizerService(
     private async ValueTask<VpmRepo> FetchRepoAsync(string sourceRepoUrl)
     {
         var repoResponse = await httpClient.GetStringAsync(sourceRepoUrl);
+
+        using var document = JsonDocument.Parse(repoResponse);
+        ValidateManifestStructure(document);
+
         var repo = JsonSerializer.Deserialize<VpmRepo>(repoResponse, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -129,6 +150,72 @@ public class RepoSynchronizerService(
         if (repo is null) throw new InvalidOperationException("Deserialize Repo Response is not valid");
 
         return repo;
+    }
+
+    /// <summary>
+    /// 在写入任何数据之前校验清单结构。只有显式且结构有效的 packages 对象才算有效清单：
+    /// 缺字段、null 或类型错误都不是“上游撤回了所有版本”，必须让本次同步失败，
+    /// 而不是把镜像当空清单清理。属性名按与 JsonSerializer（CamelCase 命名策略）一致的方式进行精确匹配。
+    /// 版本条目内声明的 name/version 必须与其清单键一致：镜像记录按条目内的值落库，
+    /// 不一致会写出与清单对不上的记录。
+    /// </summary>
+    private static void ValidateManifestStructure(JsonDocument document)
+    {
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+            throw new InvalidOperationException("Repo Response is not a JSON object");
+
+        if (!TryGetProperty(document.RootElement, "packages", out var packagesElement) ||
+            packagesElement.ValueKind != JsonValueKind.Object)
+            throw new InvalidOperationException("Repo Response does not contain a valid \"packages\" object");
+
+        foreach (var packageEntry in packagesElement.EnumerateObject())
+        {
+            if (packageEntry.Value.ValueKind != JsonValueKind.Object ||
+                !TryGetProperty(packageEntry.Value, "versions", out var versionsElement) ||
+                versionsElement.ValueKind != JsonValueKind.Object)
+                throw new InvalidOperationException(
+                    $"Package entry \"{packageEntry.Name}\" does not contain a valid \"versions\" object");
+
+            foreach (var versionEntry in versionsElement.EnumerateObject())
+            {
+                if (versionEntry.Value.ValueKind != JsonValueKind.Object ||
+                    !TryGetString(versionEntry.Value, "name", out var name) ||
+                    !TryGetString(versionEntry.Value, "version", out var version) ||
+                    name != packageEntry.Name ||
+                    version != versionEntry.Name)
+                    throw new InvalidOperationException(
+                        $"Package entry \"{packageEntry.Name}/{versionEntry.Name}\" does not match the name/version it declares");
+            }
+        }
+    }
+
+    private static bool TryGetProperty(JsonElement element, string name, out JsonElement value)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                if (string.Equals(property.Name, name, StringComparison.Ordinal))
+                {
+                    value = property.Value;
+                    return true;
+                }
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static bool TryGetString(JsonElement element, string name, out string? value)
+    {
+        value = null;
+
+        if (!TryGetProperty(element, name, out var property) || property.ValueKind != JsonValueKind.String)
+            return false;
+
+        value = property.GetString();
+        return true;
     }
 
     private async ValueTask<string> ProcessPackageFileAsync(VpmPackage package, string sourceRepoId, ILogger taskLogger)
