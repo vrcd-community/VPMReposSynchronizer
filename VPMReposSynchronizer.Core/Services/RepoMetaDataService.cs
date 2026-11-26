@@ -46,6 +46,28 @@ public class RepoMetaDataService(
         await MarkAddOrUpdateVpmPackageAsync(entity);
     }
 
+    /// <summary>
+    /// 删除指定仓库中不在上游清单内的包版本记录，使镜像与上游清单保持一致。
+    /// 只删除元数据：文件按内容哈希寻址，仍可能被其它仓库或版本引用，因此不在此处删除。
+    /// 记录只按 <paramref name="repoId"/> 过滤，同一版本来自其它上游的记录不受影响。
+    /// </summary>
+    /// <returns>标记删除的记录数；由调用方统一保存。</returns>
+    public async Task<int> RemoveVpmPackagesNotInAsync(string repoId,
+        IReadOnlySet<(string PackageName, string Version)> keepPackages)
+    {
+        var mirroredPackages = await defaultDbContext.Packages
+            .Where(package => package.UpstreamId == repoId)
+            .ToArrayAsync();
+
+        var removedPackages = mirroredPackages
+            .Where(package => !keepPackages.Contains((package.Name, package.Version)))
+            .ToArray();
+
+        defaultDbContext.Packages.RemoveRange(removedPackages);
+
+        return removedPackages.Length;
+    }
+
     public async Task<VpmPackageEntity[]> GetVpmPackages()
     {
         return await defaultDbContext.Packages.ToArrayAsync();
