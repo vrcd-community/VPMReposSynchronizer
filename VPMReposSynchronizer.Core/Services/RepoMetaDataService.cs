@@ -36,12 +36,16 @@ public class RepoMetaDataService(
             defaultDbContext.Packages.Add(vpmPackageEntity);
     }
 
-    public async Task MarkAddOrUpdateVpmPackageAsync(VpmPackage vpmPackage, string fileId, string repoId)
+    public async Task MarkAddOrUpdateVpmPackageAsync(VpmPackage vpmPackage, string fileId, string repoId,
+        string? computedSha256 = null)
     {
         var entity = mapper.Map<VpmPackageEntity>(vpmPackage);
         entity.PackageId = $"{vpmPackage.Name}@{vpmPackage.Version}@{repoId}";
         entity.FileId = fileId;
         entity.UpstreamId = repoId;
+        // 上游未声明 zipSHA256（缺失或空字符串）时，以服务端对下载内容实算的哈希作为记录值。
+        if (string.IsNullOrEmpty(entity.ZipSha256) && computedSha256 is not null)
+            entity.ZipSha256 = computedSha256;
 
         await MarkAddOrUpdateVpmPackageAsync(entity);
     }
